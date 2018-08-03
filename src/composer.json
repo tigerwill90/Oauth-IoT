@@ -1,0 +1,34 @@
+{
+  "name": "Oauth2.0 server",
+  "description": "Slim 3 skeleton - authentication - authorization",
+  "type": "project",
+  "keywords": [
+      "slim",
+      "api",
+      "rest",
+      "skeleton",
+      "authentication",
+      "authorization"
+  ],
+  "minimum-stability": "stable",
+  "homepage": "https://github.com/tigerwill90/Oauth-IoT",
+  "authors": [
+      {
+          "name": "Sylvain Muller",
+          "email": "sylvain.muller90@gmail.com",
+          "homepage": "https://www.sylvainmuller.ch",
+          "role": "Developer"
+      }
+  ],
+  "require": {
+    "php" : "^7.2"
+  },
+  "require-dev" : {
+    "phpunit/phpunit": "^7.3.0"
+  },
+  "autoload": {
+      "psr-4": {
+          "Oauth\\": "app/"
+      }
+  }
+}
