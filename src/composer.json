@@ -6,6 +6,7 @@
       "slim",
       "api",
       "rest",
+      "php",
       "skeleton",
       "authentication",
       "authorization"
@@ -21,9 +22,12 @@
       }
   ],
   "require": {
-    "php" : "^7.2"
+    "php" : "^7.2",
+    "slim/slim" : "^3.10",
+    "vlucas/phpdotenv": "^2.5"
   },
   "require-dev" : {
+    "roave/security-advisories": "dev-master",
     "phpunit/phpunit": "^7.3.0"
   },
   "autoload": {

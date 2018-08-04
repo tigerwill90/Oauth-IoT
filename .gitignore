@@ -2,3 +2,5 @@
 /logs/memcd/
 /db/mysql/
 /src/vendor/
+.env
+composer.lock
