@@ -1,6 +1,7 @@
 /logs/apache2/
-/logs/memcd/
 /db/mysql/
 /src/vendor/
 .env
 composer.lock
+.idea/
+src/public/.htaccess

@@ -1,16 +1,22 @@
 <?php
 
-  use \Psr\Http\Message\ServerRequestInterface;
-  use \Psr\Http\Message\ResponseInterface;
-  use phpseclib\Crypt\AES;
+    use \Psr\Http\Message\ServerRequestInterface;
+    use \Psr\Http\Message\ResponseInterface;
+    use phpseclib\Crypt\AES;
 
-
-  $app->post('/keys', function(ServerRequestInterface $request, ResponseInterface $response) {
+    /**
+     * Post route provide
+     */
+    $app->post('/keys', function(ServerRequestInterface $request, ResponseInterface $response) {
       $args = $request->getParsedBody();
       $cipher = new AES(AES::MODE_ECB); //encryption single
+      //$cipher = new AES();
+
       $cipher->setKey('ABCDEFGHIJ012345');
+
+      //$cipher->setIV('0123456789012345');
       $cipher->disablePadding();
-      $plaintext = '012345ABCDEFGHIJ';
+      $plaintext = bin2hex(random_bytes(8));
       error_log('Encrypted : ' . $cipher->encrypt($plaintext));
       error_log('Encoded : ' . (base64_encode($cipher->encrypt($plaintext))));
 
@@ -19,4 +25,4 @@
           return $response->getBody()->write(json_encode(['key' => base64_encode($cipher->encrypt($plaintext))], JSON_UNESCAPED_SLASHES));
       }
       return $response->withStatus(401);
-  });
+    });
