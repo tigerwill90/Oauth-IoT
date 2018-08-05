@@ -34,7 +34,7 @@
     });
 
     $app->get('/weather', function(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface {
-        $curl = curl_init('http://192.168.192.80/weather');
+        $curl = curl_init('http://192.168.192.80/protected');
         $authorization = "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
         curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json' , $authorization));
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
@@ -57,7 +57,7 @@
 
         curl_close($curl);
         $body = $response->getBody();
-        $body->write(json_encode(['message' => $message]));
+        $body->write(json_encode(['message' => $message], JSON_UNESCAPED_SLASHES));
         return $response->withBody($body);
     });
 
