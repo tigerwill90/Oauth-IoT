@@ -4,10 +4,11 @@ networks:
     driver: bridge
 services:
   httpd:
-    image: tigerwill90/docker-apache-dev
+    build: .
     container_name: httpd
     ports:
       - 80:80
+      - 443:443
     restart: always
     volumes:
       - ./src:/var/www/html/
