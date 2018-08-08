@@ -15,25 +15,28 @@
     /**
      * Post route provide
      */
-    $app->map(['GET', 'POST'],'/keys', function(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface {
+    $app->post('/keys', function(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface {
 
+      // HTTP Authentication
       $headers = $request->getHeader('HTTP_AUTHORIZATION');
-      error_log('headers : ' . json_encode($request->getHeaders()));
-      $bearer = '';
+      error_log('headers : ' . print_r($request->getHeaders(), true));
       if (isset($headers[0])) {
-          if (preg_match('/Bearer\s+(.*)$/i', $headers[0],$matches)) {
-              $bearer =  $matches[1];
+          if (preg_match('/Basic\s+(.*)$/i', $headers[0],$matches)) {
+              $client =  $matches[1];
+              error_log('client : ' . base64_decode($client));
           }
           else {
               return $response->withStatus(401);
           }
+      }
+
+      // Fetch access token from token introspection
+      $args = $request->getParsedBody();
+      error_log('body : ' . print_r($request->getParsedBody(), true));
+      if (isset($args['access_token']) && preg_match('/Bearer\s+(.*)$/i', $args['access_token'],$matches)) {
+          $bearer =  $matches[1];
       } else {
-          $args = $request->getParsedBody();
-          if (isset($args['Bearer'])) {
-              $bearer = $args['Bearer'];
-          } else {
-              return $response->withStatus(401);
-          }
+          return $response->withStatus(401);
       }
 
       $cipher = new AES(AES::MODE_ECB); //encryption single
@@ -49,7 +52,7 @@
       //error_log('Encoded : ' . (base64_encode($cipher->encrypt($plaintext))));
       error_log('Bearer : ' . $bearer);
 
-      if ($bearer === 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c') {
+      if ($bearer === 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwcjVlNiIsImV4cCI6MTU2NTI2Njc3OH0.OZhc-IXCG4PxcyhVhaWXkwTkL_NaxM489mynfbkPgh') {
           $body = $response->getBody();
           $body->write(json_encode(['key' => base64_encode($cipher->encrypt($plaintext))], JSON_UNESCAPED_SLASHES));
           return $response->withBody($body)->withHeader('content-type', 'application/json');
@@ -60,7 +63,7 @@
 
     $app->get('/weather', function(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface {
         $curl = curl_init('http://192.168.192.80/protected');
-        $authorization = 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+        $authorization = 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwcjVlNiIsImV4cCI6MTU2NTI2Njc3OH0.OZhc-IXCG4PxcyhVhaWXkwTkL_NaxM489mynfbkPgh';
         curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json' , $authorization));
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_HEADERFUNCTION, "HandleHeaderLine");
