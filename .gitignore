@@ -4,4 +4,3 @@
 .env
 composer.lock
 .idea/
-src/public/.htaccess

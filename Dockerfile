@@ -21,12 +21,13 @@ RUN set -x \
                 wget
 
 ###
-### Install memcached
+### Install php extension
 ###
 RUN set -x \
         && buildDeps=" \
                 libmemcached-dev \
                 zlib1g-dev \
+                libgmp-dev \
         " \
         && doNotUninstall=" \
                 libmemcached11 \
@@ -38,6 +39,9 @@ RUN set -x \
         && docker-php-source extract \
         && git clone --branch php7 https://github.com/php-memcached-dev/php-memcached /usr/src/php/ext/memcached/ \
         && docker-php-ext-install memcached \
+        \
+        && ln /usr/include/x86_64-linux-gnu/gmp.h /usr/include/ \
+        && docker-php-ext-install gmp \
         \
         && docker-php-source delete \
         && apt-mark manual $doNotUninstall \

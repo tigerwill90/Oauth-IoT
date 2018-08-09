@@ -62,6 +62,7 @@
     });
 
     $app->get('/weather', function(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface {
+
         $curl = curl_init('http://192.168.192.80/protected');
         $authorization = 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwcjVlNiIsImV4cCI6MTU2NTI2Njc3OH0.OZhc-IXCG4PxcyhVhaWXkwTkL_NaxM489mynfbkPgh';
         curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json' , $authorization));
