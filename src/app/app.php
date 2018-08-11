@@ -16,6 +16,8 @@
     ]
   ]);
 
+  require __DIR__ . '/config/dependencies.php';
+
   require __DIR__ . '/routes/public.php';
 
   $app->run();

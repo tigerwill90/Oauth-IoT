@@ -12,6 +12,9 @@
         return $response->withBody($body);
     });
 
+    $app->post('/introspect', Oauth\Controllers\IntrospectionController::class);
+    $app->get('/connect', Oauth\Controllers\ConnexionController::class);
+
     /**
      * Post route provide
      */
