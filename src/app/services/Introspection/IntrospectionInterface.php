@@ -28,7 +28,7 @@ interface IntrospectionInterface
     public const RESP_TOKEN_TYPE = 'token_type';
     public const RESP_EXP = 'exp';
     public const RESP_IAT = 'iat';
-    public const RESP_NBF = 'nfb';
+    public const RESP_NBF = 'nbf';
     public const RESP_SUB = 'sub';
     public const RESP_AUD = 'aud';
     public const RESP_ISS = 'iss';
@@ -42,6 +42,8 @@ interface IntrospectionInterface
     public const CLAIM_JTI = 'jti';
     public const CLAIM_SCOPE = 'scope';
 
+    public function injectExtendedClass(ExtendedIntrospectionInterface $extendedIntrospection) : IntrospectionInterface;
+
     /**
      * Set claim who MUST be in the token and who need to be verified
      * RFC 7662 Section 2
@@ -49,7 +51,7 @@ interface IntrospectionInterface
      * @param string[] $claims
      * @return IntrospectionInterface
      */
-    public function setIntrospectClaims(array $claims = [self::CLAIM_ISS, self::CLAIM_EXP, self::CLAIM_JTI]) : IntrospectionInterface;
+    public function configureIntrospectClaims(array $claims = [self::CLAIM_ISS, self::CLAIM_EXP, self::CLAIM_JTI]) : IntrospectionInterface;
 
     /**
      * Set parameters who MUST representing the introspection request and OPTIONAL parameter
@@ -60,7 +62,7 @@ interface IntrospectionInterface
      * @param string[] $optional
      * @return IntrospectionInterface
      */
-    public function setIntrospectParameters(string $token = self::PARAM_TOKEN, string $tokenTypeHint = self::PARAM_TYPE_HINT, array $optional = []) : IntrospectionInterface;
+    public function configureIntrospectParameters(string $token = self::PARAM_TOKEN, string $tokenTypeHint = self::PARAM_TYPE_HINT, array $optional = []) : IntrospectionInterface;
 
     /**
      * Set top-level members of introspection introspection response
@@ -70,7 +72,7 @@ interface IntrospectionInterface
      * @param string[] $optional
      * @return IntrospectionInterface
      */
-    public function setIntrospectionResponse(array $members = [self::RESP_ACTIVE], array $optional = []) : IntrospectionInterface;
+    public function configureIntrospectResponse(array $members = [self::RESP_ACTIVE], array $optional = []) : IntrospectionInterface;
 
     /**
      * Introspect the given token and return a boolean

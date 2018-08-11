@@ -10,6 +10,7 @@ use Jose\Component\Signature\JWS;
 use Jose\Component\Signature\JWSBuilder;
 use Jose\Component\Signature\JWSVerifier;
 use Jose\Component\Signature\Serializer\CompactSerializer;
+use Jose\Component\Signature\Signature;
 
 
 class Jose
@@ -29,6 +30,12 @@ class Jose
     /** @var JWS */
     private $jws;
 
+    /** @var Signature */
+    private $signatures;
+
+    /** @var array */
+    private $headers;
+
     /** @var array */
     private $claims;
 
@@ -38,11 +45,11 @@ class Jose
     /** @var string */
     private $token;
 
-    public function __construct(AlgorithmManagerFactory $algorithmManagerFactory)
+    public function __construct(AlgorithmManagerFactory $algorithmManagerFactory, StandardConverter $jsonConverter, CompactSerializer $serializer)
     {
         $this->algorithmManagerFactory = $algorithmManagerFactory;
-        $this->jsonConverter = new StandardConverter();
-        $this->serializer = new CompactSerializer($this->jsonConverter);
+        $this->jsonConverter = $jsonConverter;
+        $this->serializer = $serializer;
     }
 
     /**
@@ -75,6 +82,19 @@ class Jose
     {
         if (null !== $this->claims) {
             return $this->claims;
+        }
+
+        return [];
+    }
+
+    /**
+     * Get headers
+     *
+     * @return array
+     */
+    public function getHeaders() : array {
+        if (null !== $this->headers) {
+            return $this->headers[0];
         }
 
         return [];
@@ -123,6 +143,10 @@ class Jose
     {
         if (null !== $this->jws) {
             $this->claims = $this->jsonConverter->decode($this->jws->getPayload());
+            $this->signatures = $this->jws->getSignatures();
+            foreach ($this->signatures as $signature) {
+                $this->headers[] = $signature->getProtectedHeader();
+            }
         }
         return $this;
     }
@@ -183,6 +207,14 @@ class Jose
             error_log($e->getMessage());
         }
         return $this;
+    }
+
+    /**
+     * Check if jws object is null (a null object is invalid object)
+     * @return bool
+     */
+    public function isValidToken() : bool {
+        return null !== $this->jws;
     }
 
     /**

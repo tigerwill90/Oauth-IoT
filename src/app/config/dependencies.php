@@ -41,7 +41,7 @@ $container['AuthenticationService'] = function () {
  * @return \Oauth\Services\Jose\Jose
  */
 $container['JoseService'] = function (ContainerInterface $c) {
-    return new Oauth\Services\Jose\Jose($c->get('AlgorithmManagerFactory'));
+    return new Oauth\Services\Jose\Jose($c->get('AlgorithmManagerFactory'), $c->get('StandardConverter'), $c->get('CompactSerializer'));
 };
 
 /**
@@ -51,6 +51,25 @@ $container['JoseService'] = function (ContainerInterface $c) {
 $container['AlgorithmManagerFactory'] = function () {
     $algorithmManagerFactory = new \Jose\Component\Core\AlgorithmManagerFactory();
     return $algorithmManagerFactory
-        ->add('HS256', new \Jose\Component\Signature\Algorithm\HS256());
+        ->add('HS256', new \Jose\Component\Signature\Algorithm\HS256())
+        ->add('HS384', new \Jose\Component\Signature\Algorithm\HS384())
+        ->add('HS512', new \Jose\Component\Signature\Algorithm\HS512());
+};
+
+/**
+ * Compact serializer
+ * @param ContainerInterface $c
+ * @return \Jose\Component\Signature\Serializer\CompactSerializer
+ */
+$container['CompactSerializer'] = function (ContainerInterface $c) {
+    return new \Jose\Component\Signature\Serializer\CompactSerializer($c->get('StandardConverter'));
+};
+
+/**
+ * Standard json converter
+ * @return \Jose\Component\Core\Converter\StandardConverter
+ */
+$container['StandardConverter'] = function () {
+    return new \Jose\Component\Core\Converter\StandardConverter();
 };
 
