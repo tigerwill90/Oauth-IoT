@@ -223,14 +223,18 @@ class Introspection implements IntrospectionInterface
      */
     private function setStandardResponse(array $claims) : self
     {
+        // Give detail only if token is active
         foreach ($this->jsonResponse as $member => $value) {
+            // don't process active twice
             if ($member !== self::RESP_ACTIVE) {
                 $this->jsonResponse[$member] = $claims[$member];
             }
+            // process username specific code
             if ($member === self::RESP_USERNAME) {
                 $this->jsonResponse[$member] = $this->extendedInterface->getUserInformation($claims);
             }
         }
+
         return $this;
     }
 
