@@ -4,7 +4,7 @@
 ###
 ###
 
-FROM php:apache
+FROM php:7.2.9-apache
 MAINTAINER "tigerwill90" <sylvain.muller90@gmail.com>
 
 ENV USER=daemon
@@ -28,6 +28,8 @@ RUN set -x \
                 libmemcached-dev \
                 zlib1g-dev \
                 libgmp-dev \
+                libsodium-dev \
+                libcurl4-openssl-dev \
         " \
         && doNotUninstall=" \
                 libmemcached11 \
@@ -39,9 +41,23 @@ RUN set -x \
         && docker-php-source extract \
         && git clone --branch php7 https://github.com/php-memcached-dev/php-memcached /usr/src/php/ext/memcached/ \
         && docker-php-ext-install memcached \
+        && docker-php-ext-enable memcached \
         \
         && ln /usr/include/x86_64-linux-gnu/gmp.h /usr/include/ \
         && docker-php-ext-install gmp \
+        && docker-php-ext-enable gmp \
+        \
+        && docker-php-ext-install sodium \
+        && docker-php-ext-enable sodium \
+        \
+        && docker-php-ext-install curl \
+        && docker-php-ext-enable curl \
+        \
+        && pecl install xdebug-2.6.1 \
+        && docker-php-ext-enable xdebug \
+        \
+        && pecl install uopz-5.0.2 \
+        && docker-php-ext-enable uopz \
         \
         && docker-php-source delete \
         && apt-mark manual $doNotUninstall \

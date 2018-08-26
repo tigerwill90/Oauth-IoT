@@ -1,5 +1,6 @@
 ENV = .env
 LOGS = apache2
+LIB = vendor
 DB = mysql
 
 all : clean install
@@ -33,7 +34,7 @@ build :
 
 clean :
 	docker-compose down
-	rm -rf src/vendor
+	rm -rf src/$(LIB)
 	rm -rf src/$(ENV)
 	rm -rf src/composer.lock
 
