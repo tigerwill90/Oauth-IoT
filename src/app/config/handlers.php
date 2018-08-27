@@ -1,12 +1,16 @@
 <?php
 
+use \Psr\Container\ContainerInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\ResponseInterface;
+
 /**
  * Slim error handler
  * @param \Psr\Container\ContainerInterface $c
  * @return Closure
  */
-$container['errorHandler'] = function (\Psr\Container\ContainerInterface $c) {
-    return function (\Psr\Http\Message\ServerRequestInterface $request,\Psr\Http\Message\ResponseInterface $response, Exception $e) use ($c) {
+$container['errorHandler'] = function (ContainerInterface $c) {
+    return function (ServerRequestInterface $request, ResponseInterface $response, Exception $e) use ($c) {
         $logger = $c->get('debugLogger');
         $logger->info('Code : ' . $e->getCode() . ' File : ' . $e->getFile() . ' Line : ' . $e->getLine() . ' Message : ' . $e->getMessage() . ' Trace . ' . $e->getTraceAsString());
         $body = $response->getBody();
@@ -19,4 +23,41 @@ $container['errorHandler'] = function (\Psr\Container\ContainerInterface $c) {
 
         return $newResponse;
     };
+};
+
+/**
+ * Slim not allowed handler
+ * @param ContainerInterface $c
+ * @return Closure
+ */
+$container['notAllowedHandler'] = function (ContainerInterface $c) {
+    return function (ServerRequestInterface $request, ResponseInterface $response, array $methods) use ($c) {
+        $body = $response->getBody();
+        $body->write(json_encode(['error' => 'method not allowed']));
+
+        $newResponse = $response
+            ->withStatus(405)
+            ->withHeader('Allow', implode(', ', $methods))
+            ->withHeader('Content-Type', 'application/json');
+
+        return $newResponse;
+    };
+};
+
+/**
+ * Slim not found handler
+ * @param ContainerInterface $c
+ * @return Closure
+ */
+$container['notFoundHandler'] = function (ContainerInterface $c) {
+  return function (ServerRequestInterface $request, ResponseInterface $response) use ($c) {
+      $body = $response->getBody();
+      $body->write(json_encode(['error' => 'route not found']));
+
+      $newResponse = $response
+          ->withStatus(404)
+          ->withHeader('Content-Type', 'application/json');
+
+      return $newResponse;
+  };
 };
