@@ -8,7 +8,7 @@
 
 namespace Oauth\Services\Introspection;
 
-use Oauth\Services\Jose\Jose;
+use Oauth\Services\Jose\JoseInterface;
 
 class Introspection implements IntrospectionInterface
 {
@@ -16,7 +16,7 @@ class Introspection implements IntrospectionInterface
     private const ALG_HS384 = 'HS384';
     private const ALG_HS512 = 'HS512';
 
-    /** @var Jose  */
+    /** @var JoseInterface  */
     private $joseService;
 
     /** @var array */
@@ -42,13 +42,22 @@ class Introspection implements IntrospectionInterface
     /** @var ClaimsCheckerInterface  */
     private $claimsChecker;
 
-    // This should take a dao here
-    public function __construct(Jose $joseService)
+    /**
+     * Introspection constructor.
+     * @param JoseInterface $joseService
+     */
+    public function __construct(JoseInterface $joseService)
     {
         $this->joseService = $joseService;
     }
 
-    public function injectExtendedClass(ClaimsCheckerInterface $claimsChecker): IntrospectionInterface
+    /**
+     * Inject a callable class to process verification of claims
+     *
+     * @param ClaimsCheckerInterface $claimsChecker
+     * @return IntrospectionInterface
+     */
+    public function injectClaimsChecker(ClaimsCheckerInterface $claimsChecker): IntrospectionInterface
     {
        $this->claimsChecker = $claimsChecker;
        return $this;
@@ -56,6 +65,7 @@ class Introspection implements IntrospectionInterface
 
     /**
      * Set mandatory claim using for introspection
+     *
      * @param array $claims
      * @return IntrospectionInterface
      */
@@ -78,6 +88,7 @@ class Introspection implements IntrospectionInterface
 
     /**
      * Set mandatory and optionally request parameter
+     *
      * @param string $token
      * @param string $tokenTypeHint
      * @param array $optional
@@ -93,6 +104,7 @@ class Introspection implements IntrospectionInterface
 
     /**
      * Set mandatory and optionally response member
+     *
      * @param array $members => must be a list of standardized response parameter
      * @param array $optional
      * @return IntrospectionInterface
@@ -130,9 +142,10 @@ class Introspection implements IntrospectionInterface
     /**
      * Process a token introspection
      * @param \Psr\Http\Message\ServerRequestInterface $request
+     * @param string $secretKey
      * @return bool
      */
-    public function introspectToken(\Psr\Http\Message\ServerRequestInterface $request) : bool
+    public function introspectToken(\Psr\Http\Message\ServerRequestInterface $request, string $secretKey) : bool
     {
         $args = $request->getParsedBody();
 
@@ -196,7 +209,7 @@ class Introspection implements IntrospectionInterface
 
         // Token  is valid, process introspection and create response
         $isVerified = $this->joseService
-            ->createKey('secret') // should be given by env variable
+            ->createKey($secretKey) // should be given by env variable
             ->createAlgorithmManager([$alg])
             ->verifyJwsObject();
 
@@ -225,6 +238,7 @@ class Introspection implements IntrospectionInterface
 
     /**
      * Set a standardized json response error for malformed request
+     *
      * RFC6749 Section 5.2 & RFC7662 Section 2.3
      * @return Introspection
      */
@@ -238,6 +252,7 @@ class Introspection implements IntrospectionInterface
 
     /**
      * Set a standard introspection response for well formed request
+     *
      * RFC7662 Section 2.2
      * @param array $claims
      * @param bool $active
@@ -271,6 +286,7 @@ class Introspection implements IntrospectionInterface
 
     /**
      * Return a standardized json response
+     *
      * @return string
      */
     public function getJsonResponse(): string
@@ -280,6 +296,7 @@ class Introspection implements IntrospectionInterface
 
     /**
      * Return false if token has expired
+     *
      * @param int $exp
      * @return bool
      */
@@ -290,6 +307,7 @@ class Introspection implements IntrospectionInterface
 
     /**
      * Return false if issued time is before now (should use nbf instead)
+     *
      * @param int $iat
      * @return bool
      */
@@ -300,6 +318,7 @@ class Introspection implements IntrospectionInterface
 
     /**
      * Return false if token is not valid now
+     *
      * @param int $nbf
      * @return bool
      */

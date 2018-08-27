@@ -13,7 +13,7 @@ use Jose\Component\Signature\Serializer\CompactSerializer;
 use Jose\Component\Signature\Signature;
 
 
-class Jose
+class Jose implements JoseInterface
 {
     /** @var AlgorithmManagerFactory */
     private $algorithmManagerFactory;
@@ -57,7 +57,8 @@ class Jose
      *
      * @return string
      */
-    public function getToken() : string {
+    public function getToken() : string
+    {
         return $this->token;
     }
 
@@ -67,7 +68,8 @@ class Jose
      * @param string $token
      * @return Jose
      */
-    public function setToken(string $token) : self {
+    public function setToken(string $token) : JoseInterface
+    {
         unset($this->token);
         $this->token = $token;
         return $this;
@@ -92,7 +94,8 @@ class Jose
      *
      * @return array
      */
-    public function getHeaders() : array {
+    public function getHeaders() : array
+    {
         if (null !== $this->headers) {
             return $this->headers[0];
         }
@@ -107,7 +110,7 @@ class Jose
      * @param array $headers
      * @return Jose
      */
-    public function createJwsObject(array $payload, array $headers) : self
+    public function createJwsObject(array $payload, array $headers) : JoseInterface
     {
         $encodedPayload = $this->jsonConverter->encode($payload);
 
@@ -139,7 +142,7 @@ class Jose
      *
      * @return Jose
      */
-    public function decodeJwsObject() : self
+    public function decodeJwsObject() : JoseInterface
     {
         if (null !== $this->jws) {
             $this->claims = $this->jsonConverter->decode($this->jws->getPayload());
@@ -157,7 +160,7 @@ class Jose
      * @param array $alias
      * @return Jose
      */
-    public function createAlgorithmManager(array $alias) : self
+    public function createAlgorithmManager(array $alias) : JoseInterface
     {
         $this->algorithmManager = $this->algorithmManagerFactory->create($alias);
         return $this;
@@ -169,7 +172,7 @@ class Jose
      * @param string $key
      * @return Jose
      */
-    public function createKey(string $key) : self
+    public function createKey(string $key) : JoseInterface
     {
         $this->jwk = JWK::create([
             'kty' => 'oct',
@@ -184,7 +187,8 @@ class Jose
      * @param int $signatureIndex
      * @return Jose
      */
-    public function serializeToken(int $signatureIndex = 0) : self {
+    public function serializeToken(int $signatureIndex = 0) : JoseInterface
+    {
         try {
             $this->token = $this->serializer->serialize($this->jws, $signatureIndex);
         } catch (\Exception $e) {
@@ -198,7 +202,7 @@ class Jose
      *
      * @return Jose
      */
-    public function unserializeToken() : self
+    public function unserializeToken() : JoseInterface
     {
         unset($this->jws);
         try {
@@ -213,7 +217,8 @@ class Jose
      * Check if jws object is null (a null object is invalid object)
      * @return bool
      */
-    public function isValidToken() : bool {
+    public function isValidToken() : bool
+    {
         return null !== $this->jws;
     }
 

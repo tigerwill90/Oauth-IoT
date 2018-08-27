@@ -43,11 +43,12 @@ interface IntrospectionInterface
     public const CLAIM_SCOPE = 'scope';
 
     /**
-     * Inject an
+     * Inject a callable class to process verification of claims
+     *
      * @param ClaimsCheckerInterface $claimsChecker
      * @return IntrospectionInterface
      */
-    public function injectExtendedClass(ClaimsCheckerInterface $claimsChecker) : IntrospectionInterface;
+    public function injectClaimsChecker(ClaimsCheckerInterface $claimsChecker) : IntrospectionInterface;
 
     /**
      * Set claim who MUST be in the token and who need to be verified
@@ -83,9 +84,10 @@ interface IntrospectionInterface
      * Introspect the given token and return a boolean
      *
      * @param \Psr\Http\Message\ServerRequestInterface $request => PSR7 request who contains OAuth 2.0 token who need to be introspected
+     * @param string $secretKey
      * @return bool => the result of introspection process
      */
-    public function introspectToken(\Psr\Http\Message\ServerRequestInterface $request) : bool;
+    public function introspectToken(\Psr\Http\Message\ServerRequestInterface $request, string $secretKey) : bool;
 
     /**
      * Return an appropriate json object response

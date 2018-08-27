@@ -12,6 +12,7 @@ namespace Oauth\Services\Introspection;
 class IExtended implements ClaimsCheckerInterface
 {
 
+    // this should take a dao class here
     public function __construct()
     {
     }

@@ -32,11 +32,11 @@ final class IntrospectionController
     public function __invoke(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface
     {
         $isValidToken =$this->introspection
-            ->injectExtendedClass(new IExtended())
+            ->injectClaimsChecker(new IExtended())
             ->setRequestParameterToVerify('token')
-            ->setClaimsToVerify([IntrospectionInterface::CLAIM_EXP, 'wrongclaim', 'nbf', 'iss', 'aud', 'iat'])
+            ->setClaimsToVerify([IntrospectionInterface::CLAIM_EXP, 'wrongclaim', 'nbf', 'iss', 'aud', 'iat', 'COLO'])
             ->setResponseParameter(['active', 'iat', 'wrongresp', 'nbf', 'username'], ['code' => 'supersecret'])
-            ->introspectToken($request);
+            ->introspectToken($request, getenv('KEY'));
 
         $body = $response->getBody();
         $body->write($this->introspection->getJsonResponse());
