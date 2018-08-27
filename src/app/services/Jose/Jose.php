@@ -104,7 +104,7 @@ class Jose implements JoseInterface
     }
 
     /**
-     * Create and return a new Jwt Object
+     * Create a new Jwt Object
      *
      * @param array $payload
      * @param array $headers
@@ -158,7 +158,7 @@ class Jose implements JoseInterface
      * Create a new algorithm manager
      *
      * @param array $alias
-     * @return Jose
+     * @return JoseInterface
      */
     public function createAlgorithmManager(array $alias) : JoseInterface
     {
@@ -170,12 +170,13 @@ class Jose implements JoseInterface
      * Create a new key
      *
      * @param string $key
-     * @return Jose
+     * @param string $keyType
+     * @return JoseInterface
      */
-    public function createKey(string $key) : JoseInterface
+    public function createKey(string $key, string $keyType) : JoseInterface
     {
         $this->jwk = JWK::create([
-            'kty' => 'oct',
+            'kty' => $keyType,
             'k' => $key
         ]);
         return $this;
@@ -185,7 +186,7 @@ class Jose implements JoseInterface
      * Serialize the jws object
      *
      * @param int $signatureIndex
-     * @return Jose
+     * @return JoseInterface
      */
     public function serializeToken(int $signatureIndex = 0) : JoseInterface
     {
@@ -198,11 +199,11 @@ class Jose implements JoseInterface
     }
 
     /**
-     * Unserialize the token into jws object
+     * Deserialize the token into jws object
      *
-     * @return Jose
+     * @return JoseInterface
      */
-    public function unserializeToken() : JoseInterface
+    public function deserializeToken() : JoseInterface
     {
         unset($this->jws);
         try {

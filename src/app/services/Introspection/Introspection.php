@@ -143,9 +143,10 @@ class Introspection implements IntrospectionInterface
      * Process a token introspection
      * @param \Psr\Http\Message\ServerRequestInterface $request
      * @param string $secretKey
+     * @param string $keyType
      * @return bool
      */
-    public function introspectToken(\Psr\Http\Message\ServerRequestInterface $request, string $secretKey) : bool
+    public function introspectToken(\Psr\Http\Message\ServerRequestInterface $request, string $secretKey, string $keyType) : bool
     {
         $args = $request->getParsedBody();
 
@@ -170,12 +171,11 @@ class Introspection implements IntrospectionInterface
             return false;
         }
 
-        // can be null
         $alg = strtoupper($args[$this->tokenTypeHint]);
 
         $this->joseService
             ->setToken($args[$this->token])
-            ->unserializeToken()
+            ->deserializeToken()
             ->decodeJwsObject();
 
         // Check if the token is valid
@@ -209,7 +209,7 @@ class Introspection implements IntrospectionInterface
 
         // Token  is valid, process introspection and create response
         $isVerified = $this->joseService
-            ->createKey($secretKey) // should be given by env variable
+            ->createKey($secretKey, $keyType) // should be given by env variable
             ->createAlgorithmManager([$alg])
             ->verifyJwsObject();
 

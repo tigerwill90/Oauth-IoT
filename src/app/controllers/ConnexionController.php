@@ -35,7 +35,7 @@ class ConnexionController
         ];
 
         $token = $this->joseService
-            ->createKey(getenv('KEY'))
+            ->createKey(getenv('KEY'), 'oct')
             ->createAlgorithmManager(['HS384'])
             ->createJwsObject($payload, ['alg' => 'HS384', 'typ' => 'JWT'])
             ->serializeToken()

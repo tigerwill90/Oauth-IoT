@@ -85,9 +85,10 @@ interface IntrospectionInterface
      *
      * @param \Psr\Http\Message\ServerRequestInterface $request => PSR7 request who contains OAuth 2.0 token who need to be introspected
      * @param string $secretKey
+     * @param string $keyType
      * @return bool => the result of introspection process
      */
-    public function introspectToken(\Psr\Http\Message\ServerRequestInterface $request, string $secretKey) : bool;
+    public function introspectToken(\Psr\Http\Message\ServerRequestInterface $request, string $secretKey, string $keyType) : bool;
 
     /**
      * Return an appropriate json object response
