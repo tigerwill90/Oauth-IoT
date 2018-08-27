@@ -52,7 +52,7 @@ interface IntrospectionInterface
 
     /**
      * Set claim who MUST be in the token and who need to be verified
-     * RFC 7662 Section 2
+     * Must follow RFC 7662 Section 2
      *
      * @param string[] $claims => must be standardized claims
      * @return IntrospectionInterface
@@ -61,7 +61,7 @@ interface IntrospectionInterface
 
     /**
      * Set parameters who MUST representing the introspection request and OPTIONAL parameter
-     * RFC 7662 Section 2.1
+     * Must follow RFC 7662 Section 2.1
      *
      * @param string $token
      * @param string $tokenTypeHint
@@ -72,7 +72,7 @@ interface IntrospectionInterface
 
     /**
      * Set top-level members of introspection introspection response
-     * RFC 7662 Section 2.2
+     * Must follow RFC 7662 Section 2.2
      *
      * @param array $members => must be standardized response parameters
      * @param string[] $optional => is non-standardized response parameters
@@ -81,7 +81,7 @@ interface IntrospectionInterface
     public function setResponseParameter(array $members = [self::RESP_ACTIVE], array $optional = []) : IntrospectionInterface;
 
     /**
-     * Introspect the given token and return a boolean
+     * Introspect the given token and return true if the token is well formed
      *
      * @param \Psr\Http\Message\ServerRequestInterface $request => PSR7 request who contains OAuth 2.0 token who need to be introspected
      * @param string $secretKey

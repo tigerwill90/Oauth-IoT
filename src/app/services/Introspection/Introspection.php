@@ -141,6 +141,7 @@ class Introspection implements IntrospectionInterface
 
     /**
      * Process a token introspection
+     *
      * @param \Psr\Http\Message\ServerRequestInterface $request
      * @param string $secretKey
      * @param string $keyType

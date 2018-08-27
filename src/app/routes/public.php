@@ -36,8 +36,8 @@
       // Fetch access token from token introspection
       $args = $request->getParsedBody();
       error_log('body : ' . print_r($request->getParsedBody(), true));
-      if (isset($args['access_token']) && preg_match('/Bearer\s+(.*)$/i', $args['access_token'],$matches)) {
-          $bearer =  $matches[1];
+      if (isset($args['access_token'])) {
+          $bearer =  $args['access_token'];
       } else {
           return $response->withStatus(401);
       }
@@ -57,7 +57,7 @@
 
       if ($bearer === 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwcjVlNiIsImV4cCI6MTU2NTI2Njc3OH0.OZhc-IXCG4PxcyhVhaWXkwTkL_NaxM489mynfbkPgh') {
           $body = $response->getBody();
-          $body->write(json_encode(['key' => base64_encode($cipher->encrypt($plaintext))], JSON_UNESCAPED_SLASHES));
+          $body->write(json_encode(['active' => true, 'key' => base64_encode($cipher->encrypt($plaintext))], JSON_UNESCAPED_SLASHES));
           return $response->withBody($body)->withHeader('content-type', 'application/json');
       }
 

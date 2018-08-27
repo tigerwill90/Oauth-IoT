@@ -35,7 +35,7 @@ final class IntrospectionController
             ->injectClaimsChecker(new IExtended())
             ->setRequestParameterToVerify('token')
             ->setClaimsToVerify([IntrospectionInterface::CLAIM_EXP, 'wrongclaim', 'nbf', 'iss', 'aud', 'iat', 'COLO'])
-            ->setResponseParameter(['active', 'iat', 'wrongresp', 'nbf', 'username'], ['code' => 'supersecret'])
+            ->setResponseParameter(['active', 'iat', 'wrongresp', 'nbf', 'username'], ['key' => 'supersecret'])
             ->introspectToken($request, getenv('KEY'), 'oct');
 
         $body = $response->getBody();
