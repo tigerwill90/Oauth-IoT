@@ -39,8 +39,8 @@ class Introspection implements IntrospectionInterface
         self::RESP_ACTIVE => null
     ];
 
-    /** @var ExtendedIntrospectionInterface  */
-    private $extendedInterface;
+    /** @var ClaimsCheckerInterface  */
+    private $claimsChecker;
 
     // This should take a dao here
     public function __construct(Jose $joseService)
@@ -48,9 +48,9 @@ class Introspection implements IntrospectionInterface
         $this->joseService = $joseService;
     }
 
-    public function injectExtendedClass(ExtendedIntrospectionInterface $extendedIntrospection): IntrospectionInterface
+    public function injectExtendedClass(ClaimsCheckerInterface $claimsChecker): IntrospectionInterface
     {
-       $this->extendedInterface = $extendedIntrospection;
+       $this->claimsChecker = $claimsChecker;
        return $this;
     }
 
@@ -59,7 +59,7 @@ class Introspection implements IntrospectionInterface
      * @param array $claims
      * @return IntrospectionInterface
      */
-    public function configureIntrospectClaims(array $claims = [self::CLAIM_ISS, self::CLAIM_EXP, self::CLAIM_JTI]) : IntrospectionInterface
+    public function setClaimsToVerify(array $claims = [self::CLAIM_ISS, self::CLAIM_EXP, self::CLAIM_JTI]) : IntrospectionInterface
     {
         // take only standardized claims
         $this->claimsToCheck = array_intersect($claims,
@@ -83,7 +83,7 @@ class Introspection implements IntrospectionInterface
      * @param array $optional
      * @return IntrospectionInterface
      */
-    public function configureIntrospectParameters(string $token = self::PARAM_TOKEN, string $tokenTypeHint = null, array $optional = []) : IntrospectionInterface
+    public function setRequestParameterToVerify(string $token = self::PARAM_TOKEN, string $tokenTypeHint = null, array $optional = []) : IntrospectionInterface
     {
         $this->token = $token;
         $this->tokenTypeHint = $tokenTypeHint;
@@ -97,7 +97,7 @@ class Introspection implements IntrospectionInterface
      * @param array $optional
      * @return IntrospectionInterface
      */
-    public function configureIntrospectResponse(array $members = [self::RESP_ACTIVE], array $optional = []): IntrospectionInterface
+    public function setResponseParameter(array $members = [self::RESP_ACTIVE], array $optional = []): IntrospectionInterface
     {
         unset($this->jsonResponse);
 
@@ -207,7 +207,6 @@ class Introspection implements IntrospectionInterface
                 // For each mandatory claims, check validity
                 foreach ($this->claimsToCheck as $claimToCheck) {
                     if (!$this->{'check' . ucfirst($claimToCheck)}($claims[$claimToCheck])) {
-                        error_log($claimToCheck);
                         $active = false;
                         break;
                     }
@@ -256,14 +255,16 @@ class Introspection implements IntrospectionInterface
                 }
                 // process username specific code
                 if ($member === self::RESP_USERNAME) {
-                    $this->jsonResponse[$member] = $this->extendedInterface->getUserInformation($claims);
+                    $this->jsonResponse[$member] = $this->claimsChecker->getUserInformation($claims);
                 }
+            }
+            // Set optional response parameter
+            foreach ($this->optionalMembers as $member => $value) {
+                $this->jsonResponse[$member] = $value;
             }
         } else {
             $this->jsonResponse = ['active' => false];
         }
-
-        // optional response with callback
 
         return $this;
     }
@@ -313,26 +314,42 @@ class Introspection implements IntrospectionInterface
      */
     private function checkSub(string $sub) : bool
     {
-        return $this->extendedInterface->verifySub($sub);
+        return $this->claimsChecker->verifySub($sub);
     }
 
+    /**
+     * @param string $aud
+     * @return bool
+     */
     private function checkAud(string $aud) : bool
     {
-        return $this->extendedInterface->verifyAud($aud);
+        return $this->claimsChecker->verifyAud($aud);
     }
 
+    /**
+     * @param string $iss
+     * @return bool
+     */
     private function checkIss(string $iss) : bool
     {
-        return $this->extendedInterface->verifyIss($iss);
+        return $this->claimsChecker->verifyIss($iss);
     }
 
+    /**
+     * @param string $jti
+     * @return bool
+     */
     private function checkJti(string $jti) : bool
     {
-        return $this->extendedInterface->verifyJti($jti);
+        return $this->claimsChecker->verifyJti($jti);
     }
 
+    /**
+     * @param string $scope
+     * @return bool
+     */
     private function checkScope(string $scope) : bool
     {
-        return $this->extendedInterface->verifyScope($scope);
+        return $this->claimsChecker->verifyScope($scope);
     }
 }

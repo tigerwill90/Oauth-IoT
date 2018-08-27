@@ -9,7 +9,7 @@
 namespace Oauth\Services\Introspection;
 
 
-interface ExtendedIntrospectionInterface
+interface ClaimsCheckerInterface
 {
 
     /**

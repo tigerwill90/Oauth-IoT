@@ -9,8 +9,12 @@
 namespace Oauth\Services\Introspection;
 
 
-class IExtended implements ExtendedIntrospectionInterface
+class IExtended implements ClaimsCheckerInterface
 {
+
+    public function __construct()
+    {
+    }
 
     public function getUserInformation(array $claims): string
     {

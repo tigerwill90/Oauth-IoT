@@ -42,7 +42,12 @@ interface IntrospectionInterface
     public const CLAIM_JTI = 'jti';
     public const CLAIM_SCOPE = 'scope';
 
-    public function injectExtendedClass(ExtendedIntrospectionInterface $extendedIntrospection) : IntrospectionInterface;
+    /**
+     * Inject an
+     * @param ClaimsCheckerInterface $claimsChecker
+     * @return IntrospectionInterface
+     */
+    public function injectExtendedClass(ClaimsCheckerInterface $claimsChecker) : IntrospectionInterface;
 
     /**
      * Set claim who MUST be in the token and who need to be verified
@@ -51,7 +56,7 @@ interface IntrospectionInterface
      * @param string[] $claims => must be standardized claims
      * @return IntrospectionInterface
      */
-    public function configureIntrospectClaims(array $claims = [self::CLAIM_ISS, self::CLAIM_EXP, self::CLAIM_JTI]) : IntrospectionInterface;
+    public function setClaimsToVerify(array $claims = [self::CLAIM_ISS, self::CLAIM_EXP, self::CLAIM_JTI]) : IntrospectionInterface;
 
     /**
      * Set parameters who MUST representing the introspection request and OPTIONAL parameter
@@ -62,7 +67,7 @@ interface IntrospectionInterface
      * @param string[] $optional
      * @return IntrospectionInterface
      */
-    public function configureIntrospectParameters(string $token = self::PARAM_TOKEN, string $tokenTypeHint = null, array $optional = []) : IntrospectionInterface;
+    public function setRequestParameterToVerify(string $token = self::PARAM_TOKEN, string $tokenTypeHint = null, array $optional = []) : IntrospectionInterface;
 
     /**
      * Set top-level members of introspection introspection response
@@ -72,7 +77,7 @@ interface IntrospectionInterface
      * @param string[] $optional => is non-standardized response parameters
      * @return IntrospectionInterface
      */
-    public function configureIntrospectResponse(array $members = [self::RESP_ACTIVE], array $optional = []) : IntrospectionInterface;
+    public function setResponseParameter(array $members = [self::RESP_ACTIVE], array $optional = []) : IntrospectionInterface;
 
     /**
      * Introspect the given token and return a boolean
