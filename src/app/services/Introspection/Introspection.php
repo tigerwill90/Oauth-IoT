@@ -25,8 +25,11 @@ class Introspection implements IntrospectionInterface
     /** @var string */
     private $token = self::PARAM_TOKEN;
 
-    /** @var string */
+    /** @var string|null */
     private $tokenTypeHint;
+
+    /** @var string */
+    private $alg;
 
     /** @var string[] */
     private $optionalParameters;
@@ -41,6 +44,9 @@ class Introspection implements IntrospectionInterface
 
     /** @var ClaimsCheckerInterface  */
     private $claimsChecker;
+
+    /** @var int */
+    private static $time;
 
     /**
      * Introspection constructor.
@@ -59,8 +65,8 @@ class Introspection implements IntrospectionInterface
      */
     public function injectClaimsChecker(ClaimsCheckerInterface $claimsChecker): IntrospectionInterface
     {
-       $this->claimsChecker = $claimsChecker;
-       return $this;
+        $this->claimsChecker = $claimsChecker;
+        return $this;
     }
 
     /**
@@ -72,7 +78,8 @@ class Introspection implements IntrospectionInterface
     public function setClaimsToVerify(array $claims = [self::CLAIM_ISS, self::CLAIM_EXP, self::CLAIM_JTI]) : IntrospectionInterface
     {
         // take only standardized claims
-        $this->claimsToCheck = array_intersect($claims,
+        $this->claimsToCheck = array_intersect(
+            $claims,
             [
                 self::CLAIM_EXP,
                 self::CLAIM_IAT,
@@ -81,7 +88,8 @@ class Introspection implements IntrospectionInterface
                 self::CLAIM_AUD,
                 self::CLAIM_ISS,
                 self::CLAIM_JTI,
-                self::CLAIM_SCOPE]
+                self::CLAIM_SCOPE
+            ]
         );
         return $this;
     }
@@ -90,7 +98,7 @@ class Introspection implements IntrospectionInterface
      * Set mandatory and optionally request parameter
      *
      * @param string $token
-     * @param string $tokenTypeHint
+     * @param string|null $tokenTypeHint
      * @param array $optional
      * @return IntrospectionInterface
      */
@@ -119,8 +127,6 @@ class Introspection implements IntrospectionInterface
             [
                 self::RESP_ACTIVE,
                 self::RESP_SCOPE,
-                self::RESP_USERNAME,
-                self::RESP_CLIENT_ID,
                 self::RESP_TOKEN_TYPE,
                 self::RESP_EXP,
                 self::RESP_IAT,
@@ -128,14 +134,33 @@ class Introspection implements IntrospectionInterface
                 self::RESP_SUB,
                 self::RESP_AUD,
                 self::RESP_ISS,
-                self::RESP_JTI]
+                self::RESP_JTI
+            ]
         );
 
-        foreach($allowedMemberResponse as $member) {
+        foreach ($allowedMemberResponse as $member) {
             $this->jsonResponse[$member] = null;
         }
 
         $this->optionalMembers = $optional;
+        return $this;
+    }
+
+    /**
+     * Add username and client id member to introspection response
+     *
+     * @param string|null $username
+     * @param int|null $clientId
+     * @return IntrospectionInterface
+     */
+    public function addUserInformation(string $username = null, int $clientId = null) : IntrospectionInterface
+    {
+        if ($username !== null) {
+            $this->jsonResponse[self::RESP_USERNAME] = $username;
+        }
+        if ($clientId !== null) {
+            $this->jsonResponse[self::RESP_CLIENT_ID] = $clientId;
+        }
         return $this;
     }
 
@@ -149,6 +174,7 @@ class Introspection implements IntrospectionInterface
      */
     public function introspectToken(\Psr\Http\Message\ServerRequestInterface $request, string $secretKey, string $keyType) : bool
     {
+        self::$time = time();
         $args = $request->getParsedBody();
 
         // Check if request as mandatory parameter
@@ -172,15 +198,15 @@ class Introspection implements IntrospectionInterface
             return false;
         }
 
-        $alg = strtoupper($args[$this->tokenTypeHint]);
+        $this->alg = strtoupper($args[$this->tokenTypeHint]);
 
-        $this->joseService
-            ->setToken($args[$this->token])
-            ->deserializeToken()
-            ->decodeJwsObject();
-
-        // Check if the token is valid
-        if (!$this->joseService->isValidToken()) {
+        // decode the token, throw an exception if malformed
+        try {
+            $this->joseService
+                ->setToken($args[$this->token])
+                ->deserializeToken()
+                ->decodeJwsObject();
+        } catch (\Exception $e) {
             $this->setErrorResponse();
             return false;
         }
@@ -195,7 +221,7 @@ class Introspection implements IntrospectionInterface
         }
 
         // If type hint is defined, check if it's value match with header alg
-        if (null !== $this->tokenTypeHint && $alg !== $headers['alg']) {
+        if (null !== $this->tokenTypeHint && $this->alg !== $headers['alg']) {
             $this->setErrorResponse();
             return false;
         }
@@ -206,12 +232,12 @@ class Introspection implements IntrospectionInterface
             return false;
         }
 
-        $alg = $headers['alg'];
+        $this->alg = $headers['alg'];
 
         // Token  is valid, process introspection and create response
         $isVerified = $this->joseService
             ->createKey($secretKey, $keyType) // should be given by env variable
-            ->createAlgorithmManager([$alg])
+            ->createAlgorithmManager([$this->alg])
             ->verifyJwsObject();
 
         if ($isVerified) {
@@ -221,6 +247,7 @@ class Introspection implements IntrospectionInterface
                 // For each mandatory claims, check validity
                 foreach ($this->claimsToCheck as $claimToCheck) {
                     if (!$this->{'check' . ucfirst($claimToCheck)}($claims[$claimToCheck])) {
+                        error_log($claimToCheck);
                         $active = false;
                         break;
                     }
@@ -234,7 +261,6 @@ class Introspection implements IntrospectionInterface
 
         $this->setStandardResponse($claims, $active);
         return true;
-
     }
 
     /**
@@ -246,7 +272,7 @@ class Introspection implements IntrospectionInterface
     private function setErrorResponse() : self
     {
         $this->jsonResponse = [
-            'error' => 'invalid request'
+            self::ERROR => self::ERROR_MSG
         ];
         return $this;
     }
@@ -265,21 +291,22 @@ class Introspection implements IntrospectionInterface
         if ($active) {
             $this->jsonResponse[self::RESP_ACTIVE] = true;
             foreach ($this->jsonResponse as $member => $value) {
-                // don't process active twice
-                if ($member !== self::RESP_ACTIVE) {
+                // don't override claims already set
+                if ($member !== self::RESP_ACTIVE && $member !== self::RESP_USERNAME && $member !== self::RESP_CLIENT_ID) {
                     $this->jsonResponse[$member] = $claims[$member];
                 }
-                // process username specific code
-                if ($member === self::RESP_USERNAME) {
-                    $this->jsonResponse[$member] = $this->claimsChecker->getUserInformation($claims);
+                // process response for token hint type
+                if ($member === self::RESP_TOKEN_TYPE && null !== $this->tokenTypeHint) {
+                    $this->jsonResponse[$member] = $this->alg;
                 }
             }
+
             // Set optional response parameter
             foreach ($this->optionalMembers as $member => $value) {
                 $this->jsonResponse[$member] = $value;
             }
         } else {
-            $this->jsonResponse = ['active' => false];
+            $this->jsonResponse = [self::RESP_ACTIVE => false];
         }
 
         return $this;
@@ -292,7 +319,7 @@ class Introspection implements IntrospectionInterface
      */
     public function getJsonResponse(): string
     {
-        return json_encode($this->jsonResponse);
+        return json_encode($this->jsonResponse, JSON_UNESCAPED_SLASHES);
     }
 
     /**
@@ -303,7 +330,7 @@ class Introspection implements IntrospectionInterface
      */
     private function checkExp(int $exp) : bool
     {
-        return time() < $exp;
+        return self::$time < $exp;
     }
 
     /**
@@ -314,7 +341,7 @@ class Introspection implements IntrospectionInterface
      */
     private function checkIat(int $iat) : bool
     {
-        return time() >= $iat;
+        return self::$time >= $iat;
     }
 
     /**
@@ -325,7 +352,7 @@ class Introspection implements IntrospectionInterface
      */
     private function checkNbf(int $nbf) : bool
     {
-        return time() > $nbf;
+        return self::$time >= $nbf;
     }
 
     /**

@@ -9,6 +9,7 @@
   $dotenv = new Dotenv\Dotenv(__DIR__ . '/../');
   $dotenv->load();
   $dotenv->required('DEBUG')->notEmpty()->allowedValues(['true', 'false']);
+  $dotenv->required('KEY')->notEmpty();
 
   $app = new Slim\App([
     'settings' => [

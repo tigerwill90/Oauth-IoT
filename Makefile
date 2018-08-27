@@ -9,12 +9,16 @@ help :
 	@echo ""
 	@echo "Available tasks :"
 	@echo ""
-	@echo "  all         Clean and Install Oauth2.0 server"
-	@echo "  install     Build & run docker image, install all dependancies"
-	@echo "  update      Update dependancies"
-	@echo "  autoload    Update autoloader"
-	@echo "  build       Build & run docker image"
-	@echo "  clean       Clean and reset the project"
+	@echo "  all                Clean and Install Oauth2.0 server"
+	@echo "  install            Install Oauth2.0 server"
+	@echo "  update             Update dependencies"
+	@echo "  autoload           Update autoloader"
+	@echo "  fixpermission      Fix directory permission for logs"
+	@echo "  bash               Run bash command inside httpd container"
+	@echo "  testall            Run all testsuite"
+	@echo "  testintrospection  Run introspection testsuite"
+	@echo "  build              Build & run docker image"
+	@echo "  clean              Clean and reset the project"
 	@echo ""
 
 install : build update fixpermission
@@ -37,6 +41,15 @@ build :
 	docker-compose down
 	docker-compose build
 	docker-compose up -d
+
+test : testintrospection
+
+testintrospection :
+	docker-compose exec httpd vendor/bin/phpunit --testsuite introspection
+	docker-compose exec httpd vendor/bin/phpcs -p -n --standard=PSR2 --extensions=php app/services/Introspection tests/Introspection app/controllers/IntrospectionController.php
+
+static :
+	docker-compose exec httpd vendor/bin/phpstan analyse app/ tests/ --level max
 
 clean :
 	docker-compose down

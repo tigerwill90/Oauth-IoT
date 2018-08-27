@@ -7,12 +7,12 @@
  */
 
 namespace Oauth\Controllers;
+
 use Oauth\Services\Introspection\IExtended;
 use Oauth\Services\Introspection\IntrospectionInterface;
 use \Psr\Http\Message\ServerRequestInterface;
 use \Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
-
 
 final class IntrospectionController
 {
@@ -41,6 +41,7 @@ final class IntrospectionController
             ->setRequestParameterToVerify('token')
             ->setClaimsToVerify([IntrospectionInterface::CLAIM_EXP, 'wrongclaim', 'nbf', 'iss', 'aud', 'iat', 'COLO'])
             ->setResponseParameter(['active', 'iat', 'wrongresp', 'nbf', 'username'], ['key' => 'supersecret'])
+            ->addUserInformation('Toto', 666)
             ->introspectToken($request, getenv('KEY'), 'oct');
 
         $body = $response->getBody();

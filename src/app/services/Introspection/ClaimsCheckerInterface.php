@@ -8,18 +8,8 @@
 
 namespace Oauth\Services\Introspection;
 
-
 interface ClaimsCheckerInterface
 {
-
-    /**
-     * A custom function to retrieve user
-     * Return null if not needed
-     * @param array $claims
-     * @return null|string
-     */
-    public function getUserInformation(array $claims) : string;
-
     /**
      * Return false is sub don't match
      * @param string $sub
@@ -54,5 +44,4 @@ interface ClaimsCheckerInterface
      * @return bool
      */
     public function verifyScope(string $scope) : bool;
-
 }

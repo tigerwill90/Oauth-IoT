@@ -202,15 +202,12 @@ class Jose implements JoseInterface
      * Deserialize the token into jws object
      *
      * @return JoseInterface
+     * @throws \Exception
      */
     public function deserializeToken() : JoseInterface
     {
         unset($this->jws);
-        try {
-            $this->jws = $this->serializer->unserialize($this->token);
-        } catch (\Exception $e) {
-            error_log($e->getMessage());
-        }
+        $this->jws = $this->serializer->unserialize($this->token);
         return $this;
     }
 

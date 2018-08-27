@@ -8,7 +8,6 @@
 
 namespace Oauth\Services\Introspection;
 
-
 class IExtended implements ClaimsCheckerInterface
 {
 
@@ -17,32 +16,27 @@ class IExtended implements ClaimsCheckerInterface
     {
     }
 
-    public function getUserInformation(array $claims): string
-    {
-        return 'toto';
-    }
-
-    public function verifySub(string $sub): bool
-    {
-       return false;
-    }
-
-    public function verifyAud(string $aud): bool
-    {
-        return $aud === 'Your application';
-    }
-
-    public function verifyIss(string $iss): bool
-    {
-        return $iss === 'My service';
-    }
-
-    public function verifyJti(string $jti): bool
+    public function verifySub(string $sub) : bool
     {
         return false;
     }
 
-    public function verifyScope(string $scope): bool
+    public function verifyAud(string $aud) : bool
+    {
+        return $aud === 'Your application';
+    }
+
+    public function verifyIss(string $iss) : bool
+    {
+        return $iss === 'My service';
+    }
+
+    public function verifyJti(string $jti) : bool
+    {
+        return false;
+    }
+
+    public function verifyScope(string $scope) : bool
     {
         return false;
     }

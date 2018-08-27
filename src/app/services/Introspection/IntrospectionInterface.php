@@ -41,6 +41,8 @@ interface IntrospectionInterface
     public const CLAIM_ISS = 'iss';
     public const CLAIM_JTI = 'jti';
     public const CLAIM_SCOPE = 'scope';
+    public const ERROR = 'error';
+    public const ERROR_MSG = 'invalid request';
 
     /**
      * Inject a callable class to process verification of claims
@@ -71,7 +73,7 @@ interface IntrospectionInterface
     public function setRequestParameterToVerify(string $token = self::PARAM_TOKEN, string $tokenTypeHint = null, array $optional = []) : IntrospectionInterface;
 
     /**
-     * Set top-level members of introspection introspection response
+     * Set top-level members of introspection response
      * Must follow RFC 7662 Section 2.2
      *
      * @param array $members => must be standardized response parameters
@@ -79,6 +81,16 @@ interface IntrospectionInterface
      * @return IntrospectionInterface
      */
     public function setResponseParameter(array $members = [self::RESP_ACTIVE], array $optional = []) : IntrospectionInterface;
+
+    /**
+     * Add username and client id member to introspection response
+     * Must follow RFC 7662 Section 2.2
+     *
+     * @param string|null $username
+     * @param int|null $clientId
+     * @return IntrospectionInterface
+     */
+    public function addUserInformation(string $username = null, int $clientId = null) : IntrospectionInterface;
 
     /**
      * Introspect the given token and return true if the token is well formed
@@ -96,5 +108,4 @@ interface IntrospectionInterface
      * @return string
      */
     public function getJsonResponse() : string;
-
 }
