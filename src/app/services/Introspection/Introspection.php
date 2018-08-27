@@ -61,7 +61,18 @@ class Introspection implements IntrospectionInterface
      */
     public function configureIntrospectClaims(array $claims = [self::CLAIM_ISS, self::CLAIM_EXP, self::CLAIM_JTI]) : IntrospectionInterface
     {
-        $this->claimsToCheck = array_intersect($claims, [self::CLAIM_EXP, self::CLAIM_IAT, self::CLAIM_NBF, self::CLAIM_SUB, self::CLAIM_AUD, self::CLAIM_ISS, self::CLAIM_JTI, self::CLAIM_SCOPE]);
+        // take only standardized claims
+        $this->claimsToCheck = array_intersect($claims,
+            [
+                self::CLAIM_EXP,
+                self::CLAIM_IAT,
+                self::CLAIM_NBF,
+                self::CLAIM_SUB,
+                self::CLAIM_AUD,
+                self::CLAIM_ISS,
+                self::CLAIM_JTI,
+                self::CLAIM_SCOPE]
+        );
         return $this;
     }
 
@@ -72,7 +83,7 @@ class Introspection implements IntrospectionInterface
      * @param array $optional
      * @return IntrospectionInterface
      */
-    public function configureIntrospectParameters(string $token = self::PARAM_TOKEN, string $tokenTypeHint = self::PARAM_TYPE_HINT, array $optional = []) : IntrospectionInterface
+    public function configureIntrospectParameters(string $token = self::PARAM_TOKEN, string $tokenTypeHint = null, array $optional = []) : IntrospectionInterface
     {
         $this->token = $token;
         $this->tokenTypeHint = $tokenTypeHint;
@@ -82,13 +93,15 @@ class Introspection implements IntrospectionInterface
 
     /**
      * Set mandatory and optionally response member
-     * @param array $members
+     * @param array $members => must be a list of standardized response parameter
      * @param array $optional
      * @return IntrospectionInterface
      */
     public function configureIntrospectResponse(array $members = [self::RESP_ACTIVE], array $optional = []): IntrospectionInterface
     {
         unset($this->jsonResponse);
+
+        // take only standardized response parameters
         $allowedMemberResponse = array_intersect(
             $members,
             [
@@ -129,12 +142,22 @@ class Introspection implements IntrospectionInterface
             return false;
         }
 
+        // Check if request as mandatory optional parameter
+        foreach ($this->optionalParameters as $optionalParameter) {
+            if (!isset($args[$optionalParameter])) {
+                $this->setErrorResponse();
+                return false;
+            }
+        }
+
         // Check if hint type is a supported algorithm
         if (null !== $this->tokenTypeHint && !\in_array(strtoupper($args[$this->tokenTypeHint]), [self::ALG_HS256, self::ALG_HS384, self::ALG_HS512], true)) {
+            error_log($this->tokenTypeHint);
             $this->setErrorResponse();
             return false;
         }
 
+        // can be null
         $alg = strtoupper($args[$this->tokenTypeHint]);
 
         $this->joseService
@@ -159,7 +182,6 @@ class Introspection implements IntrospectionInterface
 
         // If type hint is defined, check if it's value match with header alg
         if (null !== $this->tokenTypeHint && $alg !== $headers['alg']) {
-            error_log('yolo');
             $this->setErrorResponse();
             return false;
         }
@@ -179,25 +201,25 @@ class Introspection implements IntrospectionInterface
             ->verifyJwsObject();
 
         if ($isVerified) {
-            $this->jsonResponse[self::RESP_ACTIVE] = true;
+            $active = true;
             // Check if  all mandatory claims are present
             if (\count($this->claimsToCheck) === \count(array_intersect($this->claimsToCheck, array_keys($claims)))) {
                 // For each mandatory claims, check validity
                 foreach ($this->claimsToCheck as $claimToCheck) {
                     if (!$this->{'check' . ucfirst($claimToCheck)}($claims[$claimToCheck])) {
                         error_log($claimToCheck);
-                        $this->jsonResponse[self::RESP_ACTIVE] = false;
+                        $active = false;
                         break;
                     }
                 }
             } else {
-                $this->jsonResponse[self::RESP_ACTIVE] = false;
+                $active = false;
             }
         } else {
-            $this->jsonResponse[self::RESP_ACTIVE] = false;
+            $active = false;
         }
 
-        $this->setStandardResponse($claims);
+        $this->setStandardResponse($claims, $active);
         return true;
 
     }
@@ -219,21 +241,29 @@ class Introspection implements IntrospectionInterface
      * Set a standard introspection response for well formed request
      * RFC7662 Section 2.2
      * @param array $claims
+     * @param bool $active
      * @return Introspection
      */
-    private function setStandardResponse(array $claims) : self
+    private function setStandardResponse(array $claims, bool $active) : self
     {
         // Give detail only if token is active
-        foreach ($this->jsonResponse as $member => $value) {
-            // don't process active twice
-            if ($member !== self::RESP_ACTIVE) {
-                $this->jsonResponse[$member] = $claims[$member];
+        if ($active) {
+            $this->jsonResponse[self::RESP_ACTIVE] = true;
+            foreach ($this->jsonResponse as $member => $value) {
+                // don't process active twice
+                if ($member !== self::RESP_ACTIVE) {
+                    $this->jsonResponse[$member] = $claims[$member];
+                }
+                // process username specific code
+                if ($member === self::RESP_USERNAME) {
+                    $this->jsonResponse[$member] = $this->extendedInterface->getUserInformation($claims);
+                }
             }
-            // process username specific code
-            if ($member === self::RESP_USERNAME) {
-                $this->jsonResponse[$member] = $this->extendedInterface->getUserInformation($claims);
-            }
+        } else {
+            $this->jsonResponse = ['active' => false];
         }
+
+        // optional response with callback
 
         return $this;
     }

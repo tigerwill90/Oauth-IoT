@@ -48,7 +48,7 @@ interface IntrospectionInterface
      * Set claim who MUST be in the token and who need to be verified
      * RFC 7662 Section 2
      *
-     * @param string[] $claims
+     * @param string[] $claims => must be standardized claims
      * @return IntrospectionInterface
      */
     public function configureIntrospectClaims(array $claims = [self::CLAIM_ISS, self::CLAIM_EXP, self::CLAIM_JTI]) : IntrospectionInterface;
@@ -62,14 +62,14 @@ interface IntrospectionInterface
      * @param string[] $optional
      * @return IntrospectionInterface
      */
-    public function configureIntrospectParameters(string $token = self::PARAM_TOKEN, string $tokenTypeHint = self::PARAM_TYPE_HINT, array $optional = []) : IntrospectionInterface;
+    public function configureIntrospectParameters(string $token = self::PARAM_TOKEN, string $tokenTypeHint = null, array $optional = []) : IntrospectionInterface;
 
     /**
      * Set top-level members of introspection introspection response
      * RFC 7662 Section 2.2
      *
-     * @param array $members
-     * @param string[] $optional
+     * @param array $members => must be standardized response parameters
+     * @param string[] $optional => is non-standardized response parameters
      * @return IntrospectionInterface
      */
     public function configureIntrospectResponse(array $members = [self::RESP_ACTIVE], array $optional = []) : IntrospectionInterface;

@@ -12,7 +12,7 @@ namespace Oauth\Services\Introspection;
 class IExtended implements ExtendedIntrospectionInterface
 {
 
-    public function getUserInformation(array $claims): ?string
+    public function getUserInformation(array $claims): string
     {
         return 'toto';
     }

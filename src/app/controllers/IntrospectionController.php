@@ -33,6 +33,7 @@ final class IntrospectionController
     {
         $isValidToken =$this->introspection
             ->injectExtendedClass(new IExtended())
+            ->configureIntrospectParameters('token')
             ->configureIntrospectClaims([IntrospectionInterface::CLAIM_EXP, 'wrongclaim', 'nbf', 'iss', 'aud', 'iat'])
             ->configureIntrospectResponse(['active', 'iat', 'wrongresp', 'nbf', 'username'])
             ->introspectToken($request);
