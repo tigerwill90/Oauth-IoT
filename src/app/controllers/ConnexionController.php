@@ -8,19 +8,23 @@
 
 namespace Oauth\Controllers;
 
-
-use Oauth\Services\Jose\Jose;
+use Oauth\Services\Jose\JoseInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Log\LoggerInterface;
 
 class ConnexionController
 {
-
+    /** @var JoseInterface  */
     private $joseService;
 
-    public function __construct(Jose $joseService)
+    /** @var LoggerInterface  */
+    private $logger;
+
+    public function __construct(JoseInterface $joseService, LoggerInterface $logger)
     {
         $this->joseService = $joseService;
+        $this->logger = $logger;
     }
 
     public function __invoke(ServerRequestInterface $request, ResponseInterface $response)

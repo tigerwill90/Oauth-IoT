@@ -11,6 +11,7 @@ use Oauth\Services\Introspection\IExtended;
 use Oauth\Services\Introspection\IntrospectionInterface;
 use \Psr\Http\Message\ServerRequestInterface;
 use \Psr\Http\Message\ResponseInterface;
+use Psr\Log\LoggerInterface;
 
 
 final class IntrospectionController
@@ -19,9 +20,13 @@ final class IntrospectionController
     /** @var IntrospectionInterface  */
     private $introspection;
 
-    public function __construct(IntrospectionInterface $introspection)
+    /** @var LoggerInterface  */
+    private $logger;
+
+    public function __construct(IntrospectionInterface $introspection, LoggerInterface $logger)
     {
         $this->introspection = $introspection;
+        $this->logger = $logger;
     }
 
     /**

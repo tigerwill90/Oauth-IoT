@@ -11,7 +11,7 @@ services:
       - 443:443
     restart: always
     volumes:
-      - ./src:/var/www/html/
+      - ./src:/var/www/html
       - ./logs/apache2:/var/log/apache2
     environment:
       VIRTUAL_HOST: ${VIRTUAL_HOST}

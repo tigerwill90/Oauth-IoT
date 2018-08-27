@@ -32,7 +32,8 @@
     "web-token/jwt-core": "^1.1",
     "web-token/jwt-checker": "^1.1",
     "web-token/jwt-signature": "^1.1",
-    "web-token/jwt-encryption": "^1.1"
+    "web-token/jwt-encryption": "^1.1",
+    "monolog/monolog": "^1.23"
   },
   "require-dev" : {
     "roave/security-advisories": "dev-master",

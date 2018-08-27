@@ -7,8 +7,10 @@
 FROM php:7.2.9-apache
 MAINTAINER "tigerwill90" <sylvain.muller90@gmail.com>
 
-ENV USER=daemon
-ENV GROUP=daemon
+ENV USER=www-data
+ENV GROUP=www-data
+
+ADD /src /var/www/html
 
 ###
 ### Install tools
@@ -111,8 +113,10 @@ RUN set -x \
 ###
 RUN set -x \
   && mkdir -p /var/www/html/public \
+  && mkdir -p /var/www/html/logs \
   && chmod 0755 /var/www/html/public \
-  && chown ${USER}:${GROUP} /var/www/html/public
+  && chmod -R 777 /var/www/html/logs \
+  && chown -R ${USER}:${GROUP} /var/www/html
 
 RUN service apache2 restart
 

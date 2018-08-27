@@ -5,17 +5,23 @@ use Psr\Container\ContainerInterface;
 $container = $app->getContainer();
 
 /**
- * Introspection controllers
+ * Introspection controller
  *
  * @param ContainerInterface $c
  * @return \Oauth\Controllers\IntrospectionController
  */
 $container[\Oauth\Controllers\IntrospectionController::class] = function (ContainerInterface $c) {
-  return new \Oauth\Controllers\IntrospectionController($c->get('IntrospectionService'));
+  return new \Oauth\Controllers\IntrospectionController($c->get('IntrospectionService'), $c->get('debugLogger'));
 };
 
+/**
+ * Connexion controller
+ *
+ * @param ContainerInterface $c
+ * @return \Oauth\Controllers\ConnexionController
+ */
 $container[\Oauth\Controllers\ConnexionController::class] = function (ContainerInterface $c) {
-  return new \Oauth\Controllers\ConnexionController($c->get('JoseService'));
+  return new \Oauth\Controllers\ConnexionController($c->get('JoseService'), $c->get('debugLogger'));
 };
 
 /**
@@ -71,5 +77,16 @@ $container['CompactSerializer'] = function (ContainerInterface $c) {
  */
 $container['StandardConverter'] = function () {
     return new \Jose\Component\Core\Converter\StandardConverter();
+};
+
+/**
+ * PSR-3 Logger
+ * @return \Monolog\Logger
+ */
+$container['debugLogger'] = function () {
+  $log = new \Monolog\Logger('oauth_debug');
+  $stream = new \Monolog\Handler\StreamHandler(__DIR__ . '/../../logs/oauth.log', \Monolog\Logger::DEBUG);
+  $log->pushHandler($stream);
+  return $log;
 };
 

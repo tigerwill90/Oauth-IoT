@@ -17,7 +17,7 @@ help :
 	@echo "  clean       Clean and reset the project"
 	@echo ""
 
-install : build update
+install : build update fixpermission
 	cp src/.env.example src/$(ENV)
 
 update :
@@ -26,6 +26,12 @@ update :
 
 autoload :
 	docker-compose exec httpd composer dump-autoload -o
+
+bash :
+	docker-compose exec httpd bash
+
+fixpermission :
+	chmod -R 777 src/logs
 
 build :
 	docker-compose down

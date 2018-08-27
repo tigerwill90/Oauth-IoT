@@ -1,6 +1,6 @@
-/logs/apache2/
 /db/mysql/
 /src/vendor/
+*.log
 .env
 composer.lock
 .idea/

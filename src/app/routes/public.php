@@ -70,7 +70,7 @@
         $authorization = 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIwcjVlNiIsImV4cCI6MTU2NTI2Njc3OH0.OZhc-IXCG4PxcyhVhaWXkwTkL_NaxM489mynfbkPgh';
         curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json' , $authorization));
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_HEADERFUNCTION, "HandleHeaderLine");
+        curl_setopt($curl, CURLOPT_HEADERFUNCTION, 'HandleHeaderLine');
         curl_setopt($curl, CURLOPT_TIMEOUT,10);
         $payload = curl_exec($curl);
 
