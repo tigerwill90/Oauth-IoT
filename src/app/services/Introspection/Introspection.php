@@ -22,6 +22,9 @@ class Introspection implements IntrospectionInterface
     /** @var array */
     private $claimsToCheck = [self::CLAIM_ISS, self::CLAIM_EXP, self::CLAIM_JTI];
 
+    /** @var array */
+    private $invalidClaims = [];
+
     /** @var string */
     private $token = self::PARAM_TOKEN;
 
@@ -32,10 +35,10 @@ class Introspection implements IntrospectionInterface
     private $alg;
 
     /** @var string[] */
-    private $optionalParameters;
+    private $optionalParameters = [];
 
     /** @var string[] */
-    private $optionalMembers;
+    private $optionalMembers = [];
 
     /** @var array */
     private $jsonResponse = [
@@ -175,6 +178,7 @@ class Introspection implements IntrospectionInterface
     public function introspectToken(\Psr\Http\Message\ServerRequestInterface $request, string $secretKey, string $keyType) : bool
     {
         self::$time = time();
+        $this->invalidClaims = [];
         $args = $request->getParsedBody();
 
         // Check if request as mandatory parameter
@@ -249,7 +253,7 @@ class Introspection implements IntrospectionInterface
                     if (!$this->{'check' . ucfirst($claimToCheck)}($claims[$claimToCheck])) {
                         error_log($claimToCheck);
                         $active = false;
-                        break;
+                        $this->invalidClaims[$claimToCheck] = $claims[$claimToCheck];
                     }
                 }
             } else {
@@ -320,6 +324,16 @@ class Introspection implements IntrospectionInterface
     public function getJsonResponse(): string
     {
         return json_encode($this->jsonResponse, JSON_UNESCAPED_SLASHES);
+    }
+
+    /**
+     * Return an array with all invalid claims
+     *
+     * @return array
+     */
+    public function getInvalidClaims(): array
+    {
+        return $this->invalidClaims;
     }
 
     /**

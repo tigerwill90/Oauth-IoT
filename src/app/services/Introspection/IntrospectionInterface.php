@@ -108,4 +108,11 @@ interface IntrospectionInterface
      * @return string
      */
     public function getJsonResponse() : string;
+
+    /**
+     * Return an array with all invalid claims
+     *
+     * @return array
+     */
+    public function getInvalidClaims() : array;
 }

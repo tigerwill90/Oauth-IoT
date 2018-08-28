@@ -57,7 +57,7 @@ class IntrospectionTest extends TestCase
         $payload = [
             Introspection::CLAIM_IAT => $iat,
             Introspection::CLAIM_NBF => $nbf,
-            Introspection::CLAIM_EXP => $exp, // + 1 min
+            Introspection::CLAIM_EXP => $exp,
             Introspection::CLAIM_ISS => 'issuer',
             Introspection::CLAIM_AUD => 'audience',
             Introspection::CLAIM_SUB => 'subject',
@@ -80,7 +80,7 @@ class IntrospectionTest extends TestCase
         $this->assertTrue(true);
     }
 
-    /** This method implement a full test protocol token introspection for a valid PSR-7 request with valid signature */
+    /** This method implement a full test for token introspection protocol with a valid PSR-7 request with valid signature */
     public function testIntrospectionShouldReturnActiveJsonResponse() : void
     {
         $introspection = new Introspection($this->getJoseService());
@@ -112,7 +112,7 @@ class IntrospectionTest extends TestCase
         $this->assertArrayHasKey('key', $arrayResponse);
     }
 
-    /** This method implement a full test protocol token introspection for a valid PSR-7 request with invalid signature */
+    /** This method implement a full test for token introspection protocol with a valid PSR-7 request with invalid signature */
     public function testIntrospectionShouldReturnInactiveJsonResponse() : void
     {
         $introspection = new Introspection($this->getJoseService());
@@ -132,7 +132,7 @@ class IntrospectionTest extends TestCase
         $this->assertFalse($arrayResponse[Introspection::RESP_ACTIVE]);
     }
 
-    /** This method implement a full test protocol token introspection for an invalid PSR-7 request (invalid token) */
+    /** This method implement a full test for token introspection protocol with an invalid PSR-7 request (invalid token) */
     public function testIntrospectionShouldReturnError() : void
     {
         $introspection = new Introspection($this->getJoseService());
@@ -149,5 +149,74 @@ class IntrospectionTest extends TestCase
         $this->assertFalse($isValid);
         $arrayResponse = json_decode($introspection->getJsonResponse(), true);
         $this->assertEquals([Introspection::ERROR => Introspection::ERROR_MSG], $arrayResponse);
+    }
+
+    /** This method implement multiple test for token introspection with invalid claim time */
+    public function testIntrospectionShouldReturnInactiveJsonResponseWithTimeClaim() : void
+    {
+        $introspection = new Introspection($this->getJoseService());
+        $nbf = time() + 10;
+        $iat = time() + 15;
+        $exp = time() - 60;
+        $token1 = $this->getJwsObject(self::KEY, $iat, time(), time() + 20);
+        $token2 = $this->getJwsObject(self::KEY, time(), $nbf, time() + 20);
+        $token3 = $this->getJwsObject(self::KEY, time(), time(), $exp);
+        $token4 = $this->getJwsObject(self::KEY, $iat, $nbf, $exp);
+        $request1 = $this->requestFactory()->withParsedBody([Introspection::PARAM_TOKEN => $token1, Introspection::PARAM_TYPE_HINT => 'HS256', 'foo' => 'foo', 'bar' => 'bar']);
+        $request2 = $this->requestFactory()->withParsedBody([Introspection::PARAM_TOKEN => $token2, Introspection::PARAM_TYPE_HINT => 'HS256', 'foo' => 'foo', 'bar' => 'bar']);
+        $request3 = $this->requestFactory()->withParsedBody([Introspection::PARAM_TOKEN => $token3, Introspection::PARAM_TYPE_HINT => 'HS256', 'foo' => 'foo', 'bar' => 'bar']);
+        $request4 = $this->requestFactory()->withParsedBody([Introspection::PARAM_TOKEN => $token4, Introspection::PARAM_TYPE_HINT => 'HS256', 'foo' => 'foo', 'bar' => 'bar']);
+
+        $isValid1 = $introspection
+            ->injectClaimsChecker(new ExtendClaimsTest())
+            ->setClaimsToVerify([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
+            ->setRequestParameterToVerify(Introspection::PARAM_TOKEN, Introspection::PARAM_TYPE_HINT, ['foo', 'bar'])
+            ->setResponseParameter([Introspection::RESP_ACTIVE, Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], ['key' => '/super/secret/'])
+            ->addUserInformation('John Doe', 10)
+            ->introspectToken($request1, self::KEY, 'oct');
+
+        $this->assertTrue($isValid1);
+        $arrayResponse = json_decode($introspection->getJsonResponse(), true);
+        $this->assertEquals($arrayResponse, [Introspection::RESP_ACTIVE => false]);
+        $this->assertEquals($introspection->getInvalidClaims(), ['iat' => $iat]);
+
+        $isValid2 = $introspection
+            ->injectClaimsChecker(new ExtendClaimsTest())
+            ->setClaimsToVerify([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
+            ->setRequestParameterToVerify(Introspection::PARAM_TOKEN, Introspection::PARAM_TYPE_HINT, ['foo', 'bar'])
+            ->setResponseParameter([Introspection::RESP_ACTIVE, Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], ['key' => '/super/secret/'])
+            ->addUserInformation('John Doe', 10)
+            ->introspectToken($request2, self::KEY, 'oct');
+
+        $this->assertTrue($isValid2);
+        $arrayResponse = json_decode($introspection->getJsonResponse(), true);
+        $this->assertEquals($arrayResponse, [Introspection::RESP_ACTIVE => false]);
+        $this->assertEquals($introspection->getInvalidClaims(), ['nbf' => $nbf]);
+
+        $isValid3 = $introspection
+            ->injectClaimsChecker(new ExtendClaimsTest())
+            ->setClaimsToVerify([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
+            ->setRequestParameterToVerify(Introspection::PARAM_TOKEN, Introspection::PARAM_TYPE_HINT, ['foo', 'bar'])
+            ->setResponseParameter([Introspection::RESP_ACTIVE, Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], ['key' => '/super/secret/'])
+            ->addUserInformation('John Doe', 10)
+            ->introspectToken($request3, self::KEY, 'oct');
+
+        $this->assertTrue($isValid3);
+        $arrayResponse = json_decode($introspection->getJsonResponse(), true);
+        $this->assertEquals($arrayResponse, [Introspection::RESP_ACTIVE => false]);
+        $this->assertEquals($introspection->getInvalidClaims(), ['exp' => $exp]);
+
+        $isValid4 = $introspection
+            ->injectClaimsChecker(new ExtendClaimsTest())
+            ->setClaimsToVerify([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
+            ->setRequestParameterToVerify(Introspection::PARAM_TOKEN, Introspection::PARAM_TYPE_HINT, ['foo', 'bar'])
+            ->setResponseParameter([Introspection::RESP_ACTIVE, Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], ['key' => '/super/secret/'])
+            ->addUserInformation('John Doe', 10)
+            ->introspectToken($request4, self::KEY, 'oct');
+
+        $this->assertTrue($isValid4);
+        $arrayResponse = json_decode($introspection->getJsonResponse(), true);
+        $this->assertEquals($arrayResponse, [Introspection::RESP_ACTIVE => false]);
+        $this->assertEquals($introspection->getInvalidClaims(), ['exp' => $exp, 'iat' => $iat, 'nbf' => $nbf]);
     }
 }

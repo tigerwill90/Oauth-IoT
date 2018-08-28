@@ -1,0 +1,20 @@
+sudo: required
+
+language: php
+
+services:
+  - docker
+
+php:
+  - 7.2
+  - nightly
+
+before_script:
+  - make install
+  - sleep 30
+
+script:
+  make test
+
+after_script:
+  - docker-compose down
