@@ -48,6 +48,9 @@ build :
 
 test : testintrospection
 
+travistest :
+	docker-compose exec httpd vendor/bin/phpunit --testsuite all --coverage-text --coverage-clover=coverage.xml
+
 testintrospection :
 	docker-compose exec httpd vendor/bin/phpunit --testsuite introspection
 	docker-compose exec httpd vendor/bin/phpcs -p -n --standard=PSR2 --extensions=php app/services/Introspection tests/Introspection app/controllers/IntrospectionController.php

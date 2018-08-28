@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/tigerwill90/Oauth-IoT.svg?branch=0.x)](https://travis-ci.org/tigerwill90/Oauth-IoT)
 # Oauth 2.0 Server with IoT device support
 
 ### Getting started
