@@ -8,16 +8,12 @@
 
 namespace Oauth\Services\Introspection;
 
-use Oauth\Services\Jose\JoseInterface;
+use Oauth\Services\Jose\JoseHelperInterface;
 
 class Introspection implements IntrospectionInterface
 {
-    private const ALG_HS256 = 'HS256';
-    private const ALG_HS384 = 'HS384';
-    private const ALG_HS512 = 'HS512';
-
-    /** @var JoseInterface  */
-    private $joseService;
+    /** @var JoseHelperInterface  */
+    private $joseHelper;
 
     /** @var array */
     private $claimsToCheck = [self::CLAIM_ISS, self::CLAIM_EXP, self::CLAIM_JTI];
@@ -53,11 +49,11 @@ class Introspection implements IntrospectionInterface
 
     /**
      * Introspection constructor.
-     * @param JoseInterface $joseService
+     * @param JoseHelperInterface $joseHelper
      */
-    public function __construct(JoseInterface $joseService)
+    public function __construct(JoseHelperInterface $joseHelper)
     {
-        $this->joseService = $joseService;
+        $this->joseHelper = $joseHelper;
     }
 
     /**
@@ -196,7 +192,7 @@ class Introspection implements IntrospectionInterface
         }
 
         // Check if hint type is a supported algorithm
-        if (null !== $this->tokenTypeHint && !\in_array(strtoupper($args[$this->tokenTypeHint]), [self::ALG_HS256, self::ALG_HS384, self::ALG_HS512], true)) {
+        if (null !== $this->tokenTypeHint && !\in_array(strtoupper($args[$this->tokenTypeHint]), $this->joseHelper->getAllAlgorithmAlias(), true)) {
             error_log($this->tokenTypeHint);
             $this->setErrorResponse();
             return false;
@@ -204,22 +200,41 @@ class Introspection implements IntrospectionInterface
 
         $this->alg = strtoupper($args[$this->tokenTypeHint]);
 
-        // decode the token, throw an exception if malformed
+        // Retrieve headers parameters, catch an invalid token
         try {
-            $this->joseService
-                ->setToken($args[$this->token])
-                ->deserializeToken()
-                ->decodeJwsObject();
+            $headers = $this->joseHelper
+                ->setJoseToken($args[$this->token])
+                ->getHeaders();
         } catch (\Exception $e) {
             $this->setErrorResponse();
             return false;
         }
 
-        $claims = $this->joseService->getClaims();
-        $headers = $this->joseService->getHeaders();
+        // Check mandatory header typ parameter
+        if (!array_key_exists('typ', $headers)) {
+            $this->setErrorResponse();
+            return false;
+        }
 
-        // Check mandatory header parameter
+        // Check if Jose type is valid
+        if (!\in_array($headers['typ'], [JoseHelperInterface::JWT, JoseHelperInterface::JWE],true)) {
+            $this->setErrorResponse();
+            return false;
+        }
+
+        // Check mandatory header alg parameter
         if (!array_key_exists('alg', $headers)) {
+            $this->setErrorResponse();
+            return false;
+        }
+
+        // Check if alg is a supported algorithm for his token type
+        if ($headers['typ'] === JoseHelperInterface::JWT && !\in_array($headers['alg'], $this->joseHelper->getSignatureAlgorithmAlias(), true)) {
+            $this->setErrorResponse();
+            return false;
+        }
+
+        if ($headers['typ'] === JoseHelperInterface::JWE && !\in_array($headers['alg'], $this->joseHelper->getKeyEncryptionAlgorithmAlias(), true)) {
             $this->setErrorResponse();
             return false;
         }
@@ -230,19 +245,40 @@ class Introspection implements IntrospectionInterface
             return false;
         }
 
-        // Check if payload is valid
-        if (empty($claims)) {
+        $this->alg = $headers['alg'];
+
+        // Check if JWE has enc parameter
+        if ($headers['typ'] === JoseHelperInterface::JWE && !isset($headers['enc'])) {
             $this->setErrorResponse();
             return false;
         }
 
-        $this->alg = $headers['alg'];
+        // Check if enc is a supported algorithm
+        if ($headers['typ'] === JoseHelperInterface::JWE && !\in_array($headers['enc'], $this->joseHelper->getContentEncryptionAlgorithmAlias(), true)) {
+            error_log('bug with jws');
+            $this->setErrorResponse();
+            return false;
+        }
 
-        // Token  is valid, process introspection and create response
-        $isVerified = $this->joseService
-            ->createKey($secretKey, $keyType) // should be given by env variable
-            ->createAlgorithmManager([$this->alg])
-            ->verifyJwsObject();
+        // Check the authenticity of the token, catch an invalid token
+        try {
+            $isVerified = $this->joseHelper
+                ->setJwkKey($secretKey, $keyType)
+                ->setJoseAlgorithm($this->alg, $headers['enc'])
+                ->setJoseType($headers['typ'])
+                ->verifyJoseToken();
+        } catch (\Exception $e) {
+            $this->setErrorResponse();
+            return false;
+        }
+
+        // Retrieve claims, catch an invalid JWE token
+        try {
+            $claims = $this->joseHelper->getClaims();
+        } catch (\Exception $e) {
+            $this->setErrorResponse();
+            return false;
+        }
 
         if ($isVerified) {
             $active = true;

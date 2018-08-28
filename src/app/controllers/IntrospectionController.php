@@ -43,7 +43,7 @@ final class IntrospectionController
     public function __invoke(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface
     {
         $encryptedKey = $this->aesHelper
-            ->aesInit(AES::MODE_ECB)
+            ->setMode(AES::MODE_ECB)
             ->aesEncrypt('abcdef!hij012345', 'AaBbCcDdEe0123Az', false);
 
         $isValidToken =$this->introspection

@@ -21,7 +21,7 @@ $container[\Oauth\Controllers\IntrospectionController::class] = function (Contai
  * @return \Oauth\Controllers\ConnexionController
  */
 $container[\Oauth\Controllers\ConnexionController::class] = function (ContainerInterface $c) {
-  return new \Oauth\Controllers\ConnexionController($c->get('JoseService'), $c->get('debugLogger'));
+  return new \Oauth\Controllers\ConnexionController($c->get('JoseHelper'), $c->get('debugLogger'));
 };
 
 /**
@@ -30,7 +30,7 @@ $container[\Oauth\Controllers\ConnexionController::class] = function (ContainerI
  * @return \Oauth\Services\Introspection\Introspection
  */
 $container['IntrospectionService'] = function (ContainerInterface $c) {
-    return new \Oauth\Services\Introspection\Introspection($c->get('JoseService'));
+    return new \Oauth\Services\Introspection\Introspection($c->get('JoseHelper'));
 };
 
 /**
@@ -50,6 +50,10 @@ $container['JoseService'] = function (ContainerInterface $c) {
     return new Oauth\Services\Jose\Jose($c->get('AlgorithmManagerFactory'), $c->get('StandardConverter'), $c->get('CompactSerializer'));
 };
 
+$container['JoseHelper'] = function (ContainerInterface $c) {
+    return new \Oauth\Services\Jose\JoseHelper($c->get('AlgorithmManagerFactory'), $c->get('compressionMethodManager'));
+};
+
 /**
  * AesHelper Helper
  *
@@ -66,9 +70,24 @@ $container['AesHelper'] = function () {
 $container['AlgorithmManagerFactory'] = function () {
     $algorithmManagerFactory = new \Jose\Component\Core\AlgorithmManagerFactory();
     return $algorithmManagerFactory
+        // JWS Key algorithm
         ->add('HS256', new \Jose\Component\Signature\Algorithm\HS256())
         ->add('HS384', new \Jose\Component\Signature\Algorithm\HS384())
-        ->add('HS512', new \Jose\Component\Signature\Algorithm\HS512());
+        ->add('HS512', new \Jose\Component\Signature\Algorithm\HS512())
+        // JWE Key algorithm
+        ->add('A128KW', new \Jose\Component\Encryption\Algorithm\KeyEncryption\A128KW())
+        ->add('A192KW', new \Jose\Component\Encryption\Algorithm\KeyEncryption\A192KW())
+        ->add('A256KW', new \Jose\Component\Encryption\Algorithm\KeyEncryption\A256KW())
+        ->add('A128GCMKW', new \Jose\Component\Encryption\Algorithm\KeyEncryption\A128GCMKW())
+        ->add('A192GCMKW', new \Jose\Component\Encryption\Algorithm\KeyEncryption\A192GCMKW())
+        ->add('A256GCMKW', new \Jose\Component\Encryption\Algorithm\KeyEncryption\A256GCMKW())
+        // JWE Content key algorithm
+        ->add('A128CBC-HS256', new \Jose\Component\Encryption\Algorithm\ContentEncryption\A128CBCHS256())
+        ->add('A192CBC-HS384', new \Jose\Component\Encryption\Algorithm\ContentEncryption\A192CBCHS384())
+        ->add('A256CBC-HS512', new \Jose\Component\Encryption\Algorithm\ContentEncryption\A256CBCHS512())
+        ->add('A128GCM', new \Jose\Component\Encryption\Algorithm\ContentEncryption\A128GCM())
+        ->add('A192GCM', new \Jose\Component\Encryption\Algorithm\ContentEncryption\A192GCM())
+        ->add('A256GCM', new \Jose\Component\Encryption\Algorithm\ContentEncryption\A256GCM());
 };
 
 /**
@@ -89,6 +108,15 @@ $container['StandardConverter'] = function () {
 };
 
 /**
+ * @return \Jose\Component\Encryption\Compression\CompressionMethodManager
+ */
+$container['compressionMethodManager'] = function () {
+    return \Jose\Component\Encryption\Compression\CompressionMethodManager::create([
+      new \Jose\Component\Encryption\Compression\Deflate()
+    ]);
+};
+
+/**
  * PSR-3 Logger
  * @return \Monolog\Logger
  */
@@ -98,4 +126,3 @@ $container['debugLogger'] = function () {
   $log->pushHandler($stream);
   return $log;
 };
-

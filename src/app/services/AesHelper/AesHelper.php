@@ -19,12 +19,12 @@ class AesHelper implements AesHelperInterface
     private $mode;
 
     /**
-     * Initialize AesHelper helper class
+     * Set AES mode
      *
      * @param int $mode
      * @return AesHelperInterface
      */
-    public function aesInit(int $mode): AesHelperInterface
+    public function setMode(int $mode): AesHelperInterface
     {
         $this->mode = $mode;
         $this->cipher = new AES($mode);

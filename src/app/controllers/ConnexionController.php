@@ -8,42 +8,48 @@
 
 namespace Oauth\Controllers;
 
-use Oauth\Services\Jose\JoseInterface;
+use Oauth\Services\Jose\JoseHelperInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
 
 class ConnexionController
 {
-    /** @var JoseInterface  */
-    private $joseService;
+    /** @var JoseHelperInterface  */
+    private $joseHelper;
 
     /** @var LoggerInterface  */
     private $logger;
 
-    public function __construct(JoseInterface $joseService, LoggerInterface $logger)
+    public function __construct(JoseHelperInterface $joseHelper, LoggerInterface $logger)
     {
-        $this->joseService = $joseService;
+        $this->joseHelper = $joseHelper;
         $this->logger = $logger;
     }
 
     public function __invoke(ServerRequestInterface $request, ResponseInterface $response)
     {
-
         $payload = [
-            'exp' => time() + 10000,
+            'exp' => time() + 1000,
             'jti' => '0123456789'
         ];
 
-        $token = $this->joseService
-            ->createKey(getenv('KEY'), 'oct')
-            ->createAlgorithmManager(['HS256'])
-            ->createJwsObject($payload, ['alg' => 'HS256', 'typ' => 'JWT'])
-            ->serializeToken()
-            ->getToken();
+        try {
+            $token = $this->joseHelper
+                ->setJwkKey(getenv('KEY'))
+                ->setJoseType('JWT')
+                ->setJoseAlgorithm('HS256')
+                ->createJoseToken($payload);
+        } catch (\Exception $e) {
+            throw new \LogicException($e->getMessage());
+        }
+
+        //$this->joseHelper->setJoseToken('eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MzU0OTA0NDgsImp0aSI6IjAxMjM0NTY3ODkifQ.wMV3d_fVfwIBbtCMoNNZhB_fzngesXvY1mwrGn3hHlbCHc8HrFqf1bn7z2Z123y7');
+
+        $foo = $this->joseHelper->getHeaders();
 
         $body = $response->getBody();
-        $body->write(json_encode(['access_token' => $token]));
-        return $response->withBody($body);
+        $body->write(json_encode(['access_token' => $token, 'headers' => $foo]));
+        return $response->withBody($body)->withHeader('Content-Type', 'application/json');
     }
 }

@@ -11,12 +11,12 @@ namespace Oauth\Services\AesHelper;
 interface AesHelperInterface
 {
     /**
-     * Initialize AesHelper helper class
+     * Set AES mode
      *
      * @param int $mode
      * @return AesHelperInterface
      */
-    public function aesInit(int $mode) : AesHelperInterface;
+    public function setMode(int $mode) : AesHelperInterface;
 
     /**
      * Set a custom padding algorithm
