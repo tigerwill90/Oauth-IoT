@@ -24,6 +24,9 @@ help :
 install : build update fixpermission
 	cp src/.env.example src/$(ENV)
 
+travis :
+	docker-compose -f docker-compose.travis.yml up --build -d
+
 update :
 	docker-compose exec httpd composer update --prefer-dist
 	make autoload

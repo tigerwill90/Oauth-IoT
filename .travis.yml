@@ -10,7 +10,7 @@ php:
   - nightly
 
 before_script:
-  - make install
+  - make travis
   - sleep 30
 
 script:
