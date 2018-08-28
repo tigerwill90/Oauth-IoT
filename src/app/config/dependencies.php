@@ -11,7 +11,7 @@ $container = $app->getContainer();
  * @return \Oauth\Controllers\IntrospectionController
  */
 $container[\Oauth\Controllers\IntrospectionController::class] = function (ContainerInterface $c) {
-  return new \Oauth\Controllers\IntrospectionController($c->get('IntrospectionService'), $c->get('debugLogger'));
+  return new \Oauth\Controllers\IntrospectionController($c->get('IntrospectionService'), $c->get('debugLogger'), $c->get('AesHelper'));
 };
 
 /**
@@ -48,6 +48,15 @@ $container['AuthenticationService'] = function () {
  */
 $container['JoseService'] = function (ContainerInterface $c) {
     return new Oauth\Services\Jose\Jose($c->get('AlgorithmManagerFactory'), $c->get('StandardConverter'), $c->get('CompactSerializer'));
+};
+
+/**
+ * AesHelper Helper
+ *
+ * @return \Oauth\Services\AesHelper\AesHelper
+ */
+$container['AesHelper'] = function () {
+    return new \Oauth\Services\AesHelper\AesHelper();
 };
 
 /**

@@ -8,10 +8,10 @@
 
 namespace Oauth\Services\Introspection;
 
-class IExtended implements ClaimsCheckerInterface
+class ClaimsCheckerRules implements ClaimsCheckerInterface
 {
 
-    // this should take a dao class here
+    // Necessary stuff to perform claims verification
     public function __construct()
     {
     }
@@ -33,7 +33,7 @@ class IExtended implements ClaimsCheckerInterface
 
     public function verifyJti(string $jti) : bool
     {
-        return false;
+        return $jti !== 'nonce';
     }
 
     public function verifyScope(string $scope) : bool

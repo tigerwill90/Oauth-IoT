@@ -31,22 +31,19 @@ class ConnexionController
     {
 
         $payload = [
-            'iat' => time() + 60,
-            'nbf' => time(),
-            'exp' => time() + 1000,
-            'iss' => 'My service',
-            'aud' => 'Your application',
+            'exp' => time() + 10000,
+            'jti' => '0123456789'
         ];
 
         $token = $this->joseService
             ->createKey(getenv('KEY'), 'oct')
-            ->createAlgorithmManager(['HS384'])
-            ->createJwsObject($payload, ['alg' => 'HS384', 'typ' => 'JWT'])
+            ->createAlgorithmManager(['HS256'])
+            ->createJwsObject($payload, ['alg' => 'HS256', 'typ' => 'JWT'])
             ->serializeToken()
             ->getToken();
 
         $body = $response->getBody();
-        $body->write(json_encode(['foo' => $token]));
+        $body->write(json_encode(['access_token' => $token]));
         return $response->withBody($body);
     }
 }
