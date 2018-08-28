@@ -26,6 +26,7 @@ install : build update fixpermission
 
 travis :
 	docker-compose -f docker-compose.travis.yml up --build -d
+	make update
 
 update :
 	docker-compose exec httpd composer update --prefer-dist
