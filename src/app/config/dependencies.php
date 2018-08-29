@@ -27,40 +27,43 @@ $container[\Oauth\Controllers\ConnexionController::class] = function (ContainerI
 /**
  * Introspection service
  * @param ContainerInterface $c
- * @return \Oauth\Services\Introspection\Introspection
+ * @return \Oauth\Services\Introspection
  */
 $container['IntrospectionService'] = function (ContainerInterface $c) {
-    return new \Oauth\Services\Introspection\Introspection($c->get('JoseHelper'));
+    return new \Oauth\Services\Introspection($c->get('JoseHelper'), $c->get('AlgorithmManagerHelper'));
 };
 
 /**
  * Authentication service
- * @return \Oauth\Services\Authentication\Authentication
+ * @return \Oauth\Services\Authentication
  */
 $container['AuthenticationService'] = function () {
-    return new \Oauth\Services\Authentication\Authentication();
+    return new \Oauth\Services\Authentication();
 };
 
 /**
- * Jose service
  * @param ContainerInterface $c
- * @return \Oauth\Services\Jose\Jose
+ * @return \Oauth\Services\Helpers\JoseHelper
  */
-$container['JoseService'] = function (ContainerInterface $c) {
-    return new Oauth\Services\Jose\Jose($c->get('AlgorithmManagerFactory'), $c->get('StandardConverter'), $c->get('CompactSerializer'));
+$container['JoseHelper'] = function (ContainerInterface $c) {
+    return new \Oauth\Services\Helpers\JoseHelper($c->get('AlgorithmManagerFactory'), $c->get('compressionMethodManager'));
 };
 
-$container['JoseHelper'] = function (ContainerInterface $c) {
-    return new \Oauth\Services\Jose\JoseHelper($c->get('AlgorithmManagerFactory'), $c->get('compressionMethodManager'));
+/**
+ * @param ContainerInterface $c
+ * @return \Oauth\Services\Helpers\AlgorithmManagerHelper
+ */
+$container['AlgorithmManagerHelper'] = function (ContainerInterface $c) {
+    return new Oauth\Services\Helpers\AlgorithmManagerHelper($c->get('AlgorithmManagerFactory'));
 };
 
 /**
  * AesHelper Helper
  *
- * @return \Oauth\Services\AesHelper\AesHelper
+ * @return \Oauth\Services\Helpers\AesHelper
  */
 $container['AesHelper'] = function () {
-    return new \Oauth\Services\AesHelper\AesHelper();
+    return new \Oauth\Services\Helpers\AesHelper();
 };
 
 /**
@@ -88,23 +91,6 @@ $container['AlgorithmManagerFactory'] = function () {
         ->add('A128GCM', new \Jose\Component\Encryption\Algorithm\ContentEncryption\A128GCM())
         ->add('A192GCM', new \Jose\Component\Encryption\Algorithm\ContentEncryption\A192GCM())
         ->add('A256GCM', new \Jose\Component\Encryption\Algorithm\ContentEncryption\A256GCM());
-};
-
-/**
- * Compact serializer
- * @param ContainerInterface $c
- * @return \Jose\Component\Signature\Serializer\CompactSerializer
- */
-$container['CompactSerializer'] = function (ContainerInterface $c) {
-    return new \Jose\Component\Signature\Serializer\CompactSerializer($c->get('StandardConverter'));
-};
-
-/**
- * Standard json converter
- * @return \Jose\Component\Core\Converter\StandardConverter
- */
-$container['StandardConverter'] = function () {
-    return new \Jose\Component\Core\Converter\StandardConverter();
 };
 
 /**

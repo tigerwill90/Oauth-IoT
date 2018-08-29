@@ -6,7 +6,7 @@
  * Time: 1:54 PM
  */
 
-namespace Oauth\Services\AesHelper;
+namespace Oauth\Services\Helpers;
 
 interface AesHelperInterface
 {

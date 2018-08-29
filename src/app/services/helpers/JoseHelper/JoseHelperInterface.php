@@ -6,16 +6,21 @@
  * Time: 3:30 PM
  */
 
-namespace Oauth\Services\Jose;
+namespace Oauth\Services\Helpers;
+
+use Jose\Component\Core\JWK;
 
 interface JoseHelperInterface
 {
+    // JoseHelper : token type
     public const JWT = 'JWT';
     public const JWE = 'JWE';
+
+    // Key types
     public const OCT = 'oct';
-    public const CL_SIGNATURE = 'Signature';
-    public const CL_KEY_ENCRYPTION = 'KeyEncryption';
-    public const CL_CONTENT_ENCRYPTION = 'ContentEncryption';
+    public const RSA = 'RSA';
+    public const EC = 'EC';
+    public const OKP = 'OKP';
 
     /**
      * Set JWK
@@ -27,7 +32,14 @@ interface JoseHelperInterface
     public function setJwkKey(string $key, string $keyType =  self::OCT) : JoseHelperInterface;
 
     /**
-     * Set Jose type
+     * Set a JWK object
+     * @param JWK $jwk
+     * @return JoseHelperInterface
+     */
+    public function setJwk(JWK $jwk) : JoseHelperInterface;
+
+    /**
+     * Set JoseHelper type
      * @param string $joseType
      * @return JoseHelperInterface
      */
@@ -78,28 +90,4 @@ interface JoseHelperInterface
      * @throws \Exception
      */
     public function getClaims() : array;
-
-    /**
-     * Return a list of all supported algorithm alias
-     * @return string[]
-     */
-    public function getAllAlgorithmAlias() : array;
-
-    /**
-     * Return a list of all supported signature alias
-     * @return string[]
-     */
-    public function getSignatureAlgorithmAlias() : array;
-
-    /**
-     * Return a list of all supported key encryption algorithm
-     * @return string[]
-     */
-    public function getKeyEncryptionAlgorithmAlias() : array;
-
-    /**
-     * Return a list of all supported content key encryption algorithm
-     * @return string[]
-     */
-    public function getContentEncryptionAlgorithmAlias() : array;
 }

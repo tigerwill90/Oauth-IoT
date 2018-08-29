@@ -6,7 +6,7 @@
  * Time: 3:22 PM
  */
 
-namespace Oauth\Services\Authentication;
+namespace Oauth\Services;
 
 
 class Authentication

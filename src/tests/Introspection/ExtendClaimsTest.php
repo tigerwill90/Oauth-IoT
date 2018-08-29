@@ -8,7 +8,7 @@
 
 namespace Oauth\Tests\Introspection;
 
-use Oauth\Services\Introspection\ClaimsCheckerInterface;
+use Oauth\Services\ClaimsCheckerInterface;
 
 class ExtendClaimsTest implements ClaimsCheckerInterface
 {

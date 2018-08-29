@@ -6,7 +6,7 @@
  * Time: 5:28 PM
  */
 
-namespace Oauth\Services\Introspection;
+namespace Oauth\Services;
 
 interface ClaimsCheckerInterface
 {

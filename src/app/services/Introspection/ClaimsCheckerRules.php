@@ -6,7 +6,7 @@
  * Time: 5:27 PM
  */
 
-namespace Oauth\Services\Introspection;
+namespace Oauth\Services;
 
 class ClaimsCheckerRules implements ClaimsCheckerInterface
 {

@@ -6,7 +6,7 @@
  * Time: 3:32 PM
  */
 
-namespace Oauth\Services\Jose;
+namespace Oauth\Services\Helpers;
 
 use Jose\Component\Core\AlgorithmManager;
 use Jose\Component\Core\AlgorithmManagerFactory;
@@ -51,9 +51,6 @@ class JoseHelper implements JoseHelperInterface
     private $sig;
 
     /** @var array */
-    private $claims;
-
-    /** @var array */
     private $headers;
 
     /** @var StandardConverter */
@@ -94,7 +91,18 @@ class JoseHelper implements JoseHelperInterface
     }
 
     /**
-     * Set Jose type
+     * Set a JWK object
+     * @param JWK $jwk
+     * @return JoseHelperInterface
+     */
+    public function setJwk(JWK $jwk) : JoseHelperInterface
+    {
+        $this->jwk = $jwk;
+        return $this;
+    }
+
+    /**
+     * Set JoseHelper type
      * @param string $joseType
      * @return JoseHelperInterface
      */
@@ -242,7 +250,7 @@ class JoseHelper implements JoseHelperInterface
                     throw $e;
                 }
             }
-            return $this->jsonConverter->decode($this->jws->getPayload(), true);
+            return (array)$this->jsonConverter->decode($this->jws->getPayload(), true);
         }
         try {
             $this->jwe = $this->createJweLoader($this->createAlgorithmManager([$this->keyAlg]), $this->createAlgorithmManager([$this->keyContent]))
@@ -250,60 +258,7 @@ class JoseHelper implements JoseHelperInterface
         } catch (\Exception $e) {
             throw $e;
         }
-        return $this->jsonConverter->decode($this->jwe->getPayload(), true);
-    }
-
-    /**
-     * Return a list of all supported algorithm alias
-     * @return string[]
-     */
-    public function getAllAlgorithmAlias() : array
-    {
-        return $this->algorithmManagerFactory->aliases();
-    }
-
-    /**
-     * Return a list of all supported signature alias
-     * @return string[]
-     */
-    public function getSignatureAlgorithmAlias() : array
-    {
-        return $this->createAlgorithmAliasArray($this->algorithmManagerFactory->all(), self::CL_SIGNATURE);
-    }
-
-    /**
-     * Return a list of all supported key encryption algorithm
-     * @return string[]
-     */
-    public function getKeyEncryptionAlgorithmAlias() : array
-    {
-        return $this->createAlgorithmAliasArray($this->algorithmManagerFactory->all(), self::CL_KEY_ENCRYPTION);
-    }
-
-    /**
-     * Return a list of all supported content key encryption algorithm
-     * @return string[]
-     */
-    public function getContentEncryptionAlgorithmAlias() : array
-    {
-        return $this->createAlgorithmAliasArray($this->algorithmManagerFactory->all(), self::CL_CONTENT_ENCRYPTION);
-    }
-
-    /**
-     * Create an an array of alias algorithm for a given type
-     * @param array $algorithms
-     * @param string $type
-     * @return string[]
-     */
-    private function createAlgorithmAliasArray(array $algorithms, string $type) : array
-    {
-        $aliases = [];
-        foreach ($algorithms as $alias => $algorithm) {
-            if (strpos(str_replace('\\', '',  \get_class($algorithm)), $type) !== false) {
-                $aliases[] = $alias;
-            }
-        }
-        return $aliases;
+        return (array)$this->jsonConverter->decode($this->jwe->getPayload(), true);
     }
 
     //public function getSupportedAlgorithmJwsK

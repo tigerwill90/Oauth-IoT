@@ -6,7 +6,7 @@
  * Time: 3:15 PM
  */
 
-namespace Oauth\Services\Introspection;
+namespace Oauth\Services;
 
 /**
  * OAuth 2.0 Token Introspection RFC 7662

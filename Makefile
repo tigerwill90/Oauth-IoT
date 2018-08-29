@@ -2,6 +2,7 @@ ENV = .env
 LOGS = apache2
 LIB = vendor
 DB = mysql
+VHOST = vhost.conf
 
 all : clean install
 
@@ -25,9 +26,15 @@ install : build update fixpermission
 	cp src/.env.example src/$(ENV)
 
 travis :
+	cp .env.example $(ENV)
+	make virtual
 	docker-compose -f docker-compose.travis.yml up --build -d
 	make update
 	cp src/.env.example src/$(ENV)
+
+virtual :
+	chmod +x vhost/virtualhost.sh
+	vhost/./virtualhost.sh
 
 update :
 	docker-compose exec httpd composer update --prefer-dist
@@ -42,7 +49,7 @@ bash :
 fixpermission :
 	chmod -R 777 src/logs
 
-build :
+build : virtual
 	docker-compose down
 	docker-compose build
 	docker-compose up -d
@@ -63,8 +70,11 @@ clean :
 	docker-compose down
 	rm -rf src/$(LIB)
 	rm -rf src/$(ENV)
+	rm -rf vhost/$(VHOST)
 	rm -rf src/composer.lock
 
 mrproper : clean
 	rm -rf logs/$(LOGS)
+	rm -rf src/logs/*.log
 	rm -rf db/$(DB)
+	rm -rf $(ENV)

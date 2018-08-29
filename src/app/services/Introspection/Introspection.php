@@ -6,14 +6,18 @@
  * Time: 3:14 PM
  */
 
-namespace Oauth\Services\Introspection;
+namespace Oauth\Services;
 
-use Oauth\Services\Jose\JoseHelperInterface;
+use Oauth\Services\Helpers\AlgorithmManagerHelperInterface;
+use Oauth\Services\Helpers\JoseHelperInterface;
 
 class Introspection implements IntrospectionInterface
 {
     /** @var JoseHelperInterface  */
     private $joseHelper;
+
+    /** @var AlgorithmManagerHelperInterface  */
+    private $algorithmHelper;
 
     /** @var array */
     private $claimsToCheck = [self::CLAIM_ISS, self::CLAIM_EXP, self::CLAIM_JTI];
@@ -51,9 +55,10 @@ class Introspection implements IntrospectionInterface
      * Introspection constructor.
      * @param JoseHelperInterface $joseHelper
      */
-    public function __construct(JoseHelperInterface $joseHelper)
+    public function __construct(JoseHelperInterface $joseHelper, AlgorithmManagerHelperInterface $algorithmHelper)
     {
         $this->joseHelper = $joseHelper;
+        $this->algorithmHelper = $algorithmHelper;
     }
 
     /**
@@ -192,7 +197,7 @@ class Introspection implements IntrospectionInterface
         }
 
         // Check if hint type is a supported algorithm
-        if (null !== $this->tokenTypeHint && !\in_array(strtoupper($args[$this->tokenTypeHint]), $this->joseHelper->getAllAlgorithmAlias(), true)) {
+        if (null !== $this->tokenTypeHint && !\in_array(strtoupper($args[$this->tokenTypeHint]), $this->algorithmHelper->getAllAlgorithmAlias(), true)) {
             error_log($this->tokenTypeHint);
             $this->setErrorResponse();
             return false;
@@ -216,8 +221,8 @@ class Introspection implements IntrospectionInterface
             return false;
         }
 
-        // Check if Jose type is valid
-        if (!\in_array($headers['typ'], [JoseHelperInterface::JWT, JoseHelperInterface::JWE],true)) {
+        // Check if JoseHelper type is valid
+        if (!\in_array($headers['typ'], [JoseHelperInterface::JWT, JoseHelperInterface::JWE], true)) {
             $this->setErrorResponse();
             return false;
         }
@@ -229,12 +234,12 @@ class Introspection implements IntrospectionInterface
         }
 
         // Check if alg is a supported algorithm for his token type
-        if ($headers['typ'] === JoseHelperInterface::JWT && !\in_array($headers['alg'], $this->joseHelper->getSignatureAlgorithmAlias(), true)) {
+        if ($headers['typ'] === JoseHelperInterface::JWT && !\in_array($headers['alg'], $this->algorithmHelper->getSignatureAlgorithmAlias(), true)) {
             $this->setErrorResponse();
             return false;
         }
 
-        if ($headers['typ'] === JoseHelperInterface::JWE && !\in_array($headers['alg'], $this->joseHelper->getKeyEncryptionAlgorithmAlias(), true)) {
+        if ($headers['typ'] === JoseHelperInterface::JWE && !\in_array($headers['alg'], $this->algorithmHelper->getKeyEncryptionAlgorithmAlias(), true)) {
             $this->setErrorResponse();
             return false;
         }
@@ -254,7 +259,7 @@ class Introspection implements IntrospectionInterface
         }
 
         // Check if enc is a supported algorithm
-        if ($headers['typ'] === JoseHelperInterface::JWE && !\in_array($headers['enc'], $this->joseHelper->getContentEncryptionAlgorithmAlias(), true)) {
+        if ($headers['typ'] === JoseHelperInterface::JWE && !\in_array($headers['enc'], $this->algorithmHelper->getContentEncryptionAlgorithmAlias(), true)) {
             error_log('bug with jws');
             $this->setErrorResponse();
             return false;

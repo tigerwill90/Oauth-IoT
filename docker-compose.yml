@@ -4,7 +4,15 @@ networks:
     driver: bridge
 services:
   httpd:
-    build: .
+    build:
+      context: .
+      args:
+        - CA_COUNTRY=${CA_COUNTRY}
+        - CA_STATE=${CA_STATE}
+        - CA_LOCALITY=${CA_LOCALITY}
+        - CA_ORGANIZATION=${CA_ORGANIZATION}
+        - CA_ORGANIZATIONUNIT=${CA_ORGANIZATIONUNIT}
+        - CA_COMMON=${VIRTUAL_HOST}
     container_name: httpd
     ports:
       - 80:80

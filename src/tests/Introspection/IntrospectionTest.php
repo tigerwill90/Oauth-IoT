@@ -9,11 +9,13 @@
 namespace Oauth\Tests\Introspection;
 
 use Jose\Component\Core\AlgorithmManagerFactory;
-use Jose\Component\Core\Converter\StandardConverter;
-use Jose\Component\Signature\Serializer\CompactSerializer;
-use Oauth\Services\Introspection\Introspection;
-use Oauth\Services\Jose\Jose;
-use Oauth\Services\Jose\JoseInterface;
+use Jose\Component\Core\JWK;
+use Jose\Component\Encryption\Compression\CompressionMethodManager;
+use Oauth\Services\Helpers\AlgorithmManagerHelper;
+use Oauth\Services\Helpers\AlgorithmManagerHelperInterface;
+use Oauth\Services\Introspection;
+use Oauth\Services\Helpers\JoseHelper;
+use Oauth\Services\Helpers\JoseHelperInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Slim\Http\Body;
 use Slim\Http\Headers;
@@ -41,15 +43,34 @@ class IntrospectionTest extends TestCase
         return $algorithmManagerFactory
             ->add('HS256', new \Jose\Component\Signature\Algorithm\HS256())
             ->add('HS384', new \Jose\Component\Signature\Algorithm\HS384())
-            ->add('HS512', new \Jose\Component\Signature\Algorithm\HS512());
+            ->add('HS512', new \Jose\Component\Signature\Algorithm\HS512())
+            // JWE Key algorithm
+            ->add('A128KW', new \Jose\Component\Encryption\Algorithm\KeyEncryption\A128KW())
+            ->add('A192KW', new \Jose\Component\Encryption\Algorithm\KeyEncryption\A192KW())
+            ->add('A256KW', new \Jose\Component\Encryption\Algorithm\KeyEncryption\A256KW())
+            ->add('A128GCMKW', new \Jose\Component\Encryption\Algorithm\KeyEncryption\A128GCMKW())
+            ->add('A192GCMKW', new \Jose\Component\Encryption\Algorithm\KeyEncryption\A192GCMKW())
+            ->add('A256GCMKW', new \Jose\Component\Encryption\Algorithm\KeyEncryption\A256GCMKW())
+            // JWE Content key algorithm
+            ->add('A128CBC-HS256', new \Jose\Component\Encryption\Algorithm\ContentEncryption\A128CBCHS256())
+            ->add('A192CBC-HS384', new \Jose\Component\Encryption\Algorithm\ContentEncryption\A192CBCHS384())
+            ->add('A256CBC-HS512', new \Jose\Component\Encryption\Algorithm\ContentEncryption\A256CBCHS512())
+            ->add('A128GCM', new \Jose\Component\Encryption\Algorithm\ContentEncryption\A128GCM())
+            ->add('A192GCM', new \Jose\Component\Encryption\Algorithm\ContentEncryption\A192GCM())
+            ->add('A256GCM', new \Jose\Component\Encryption\Algorithm\ContentEncryption\A256GCM());
     }
 
-    private function getJoseService() : JoseInterface
+    private function getAlogrithmManagerHelper() : AlgorithmManagerHelperInterface
     {
-        $standardConvertor = new StandardConverter();
-        $compactSerializer = new CompactSerializer($standardConvertor);
-        $algorithmManager = $this->getAlgorithmManager();
-        return new Jose($algorithmManager, $standardConvertor, $compactSerializer);
+        return new AlgorithmManagerHelper($this->getAlgorithmManager());
+    }
+
+    private function getJoseHelper() : JoseHelperInterface
+    {
+        $compressionMethodManager = CompressionMethodManager::create([
+            new \Jose\Component\Encryption\Compression\Deflate()
+        ]);
+        return new JoseHelper($this->getAlgorithmManager(), $compressionMethodManager);
     }
 
     private function getJwsObject(string $key, int $iat, int $nbf, int $exp, string $keyType = 'oct', string $alg = 'HS256') : string
@@ -65,14 +86,13 @@ class IntrospectionTest extends TestCase
             Introspection::CLAIM_SCOPE => 'write_rs,read_rs'
         ];
 
-        $joseService = $this->getJoseService();
+        $joseHelper = $this->getJoseHelper();
 
-        return $joseService
-            ->createKey($key, $keyType)
-            ->createAlgorithmManager([$alg])
-            ->createJwsObject($payload, ['alg' => $alg, 'typ' => 'JWT'])
-            ->serializeToken()
-            ->getToken();
+        return $joseHelper
+            ->setJwk(JWK::create(['kty' => $keyType, 'k' => $key]))
+            ->setJoseType(JoseHelperInterface::JWT)
+            ->setJoseAlgorithm($alg)
+            ->createJoseToken($payload);
     }
 
     public function testShouldBeTrue() : void
@@ -83,7 +103,7 @@ class IntrospectionTest extends TestCase
     /** This method implement a full test for token introspection protocol with a valid PSR-7 request with valid signature */
     public function testIntrospectionShouldReturnActiveJsonResponse() : void
     {
-        $introspection = new Introspection($this->getJoseService());
+        $introspection = new Introspection($this->getJoseHelper(), $this->getAlogrithmManagerHelper());
         $token = $this->getJwsObject(self::KEY, time(), time(), time() + 60);
         $request = $this->requestFactory()->withParsedBody([Introspection::PARAM_TOKEN => $token, Introspection::PARAM_TYPE_HINT => 'HS256', 'foo' => 'foo', 'bar' => 'bar']);
         $isValid = $introspection
@@ -115,7 +135,7 @@ class IntrospectionTest extends TestCase
     /** This method implement a full test for token introspection protocol with a valid PSR-7 request with invalid signature */
     public function testIntrospectionShouldReturnInactiveJsonResponse() : void
     {
-        $introspection = new Introspection($this->getJoseService());
+        $introspection = new Introspection($this->getJoseHelper(), $this->getAlogrithmManagerHelper());
         $token = $this->getJwsObject('thisisawrongkey', time(), time(), time() + 60);
         $request = $this->requestFactory()->withParsedBody([Introspection::PARAM_TOKEN => $token, Introspection::PARAM_TYPE_HINT => 'HS256', 'foo' => 'foo', 'bar' => 'bar']);
         $isValid = $introspection
@@ -135,8 +155,8 @@ class IntrospectionTest extends TestCase
     /** This method implement a full test for token introspection protocol with an invalid PSR-7 request (invalid token) */
     public function testIntrospectionShouldReturnError() : void
     {
-        $introspection = new Introspection($this->getJoseService());
-        $request = $this->requestFactory()->withParsedBody([Introspection::PARAM_TOKEN => 'eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE1MzU0MDcxNDAIm5iZiI6MTUzNTQwNzA4MCwiZXhwIjoxNTM1NDA4MDgwLCJpc3MiOiJNeSBzZXJ2aWNlIiwiYXVkIjoiWW91ciBhcHBsaWNhdGlvbiJ9.j4YUbyDgTMCojCQ2kE1NYg_gUckj73Rs-nD7rqKAWKNuIMjx10EpeQIXy1zhnd9u', Introspection::PARAM_TYPE_HINT => 'HS384', 'foo' => 'foo', 'bar' => 'bar']);
+        $introspection = new Introspection($this->getJoseHelper(), $this->getAlogrithmManagerHelper());
+        $request = $this->requestFactory()->withParsedBody([Introspection::PARAM_TOKEN => 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MzU1NDY1MTMsImp0aSI6IjAxMjM0NY3ODkifQ.cKadPlZjIhlHmc1_ltuAjvoWEjMBdr3grips3dpjv2w', Introspection::PARAM_TYPE_HINT => 'HS256', 'foo' => 'foo', 'bar' => 'bar']);
 
         $isValid = $introspection
             ->injectClaimsChecker(new ExtendClaimsTest())
@@ -154,7 +174,7 @@ class IntrospectionTest extends TestCase
     /** This method implement multiple test for token introspection with invalid claim time */
     public function testIntrospectionShouldReturnInactiveJsonResponseWithTimeClaim() : void
     {
-        $introspection = new Introspection($this->getJoseService());
+        $introspection = new Introspection($this->getJoseHelper(), $this->getAlogrithmManagerHelper());
         $nbf = time() + 10;
         $iat = time() + 15;
         $exp = time() - 60;

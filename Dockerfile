@@ -10,6 +10,13 @@ MAINTAINER "tigerwill90" <sylvain.muller90@gmail.com>
 ENV USER=www-data
 ENV GROUP=www-data
 
+ARG CA_COUNTRY=CH
+ARG CA_STATE=Geneva
+ARG CA_LOCALITY=Geneva
+ARG CA_ORGANIZATION=Spectre\ inc
+ARG CA_ORGANIZATIONUNIT=R&D
+ARG CA_COMMON=oauth.xyz
+
 ADD /src /var/www/html
 
 ###
@@ -90,7 +97,7 @@ ADD /vhost/vhost.conf /etc/apache2/sites-available
 ###
 ### Generate certificat
 ###
-RUN openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/ssl-cert-snakeoil.key -out /etc/ssl/certs/ssl-cert-snakeoil.pem -subj "/C=AT/ST=Vienna/L=Vienna/O=Security/OU=Development/CN=example.com"
+RUN openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/ssl-cert-snakeoil.key -out /etc/ssl/certs/ssl-cert-snakeoil.pem -subj "/C=$CA_COUNTRY/ST=$CA_STATE/L=$CA_LOCALITY/O=$CA_ORGANIZATION/OU=$CA_ORGANIZATIONUNIT/CN=$CA_COMMON"
 
 ###
 ### Configure ssl 

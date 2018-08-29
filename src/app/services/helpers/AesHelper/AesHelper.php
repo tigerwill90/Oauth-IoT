@@ -6,7 +6,7 @@
  * Time: 2:07 PM
  */
 
-namespace Oauth\Services\AesHelper;
+namespace Oauth\Services\Helpers;
 
 use phpseclib\Crypt\AES;
 

@@ -8,9 +8,9 @@
 
 namespace Oauth\Controllers;
 
-use Oauth\Services\AesHelper\AesHelperInterface;
-use Oauth\Services\Introspection\ClaimsCheckerRules;
-use Oauth\Services\Introspection\IntrospectionInterface;
+use Oauth\Services\Helpers\AesHelperInterface;
+use Oauth\Services\ClaimsCheckerRules;
+use Oauth\Services\IntrospectionInterface;
 use phpseclib\Crypt\AES;
 use \Psr\Http\Message\ServerRequestInterface;
 use \Psr\Http\Message\ResponseInterface;
