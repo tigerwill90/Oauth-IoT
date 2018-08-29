@@ -106,7 +106,7 @@ class JoseHelper implements JoseHelperInterface
      * @param string $joseType
      * @return JoseHelperInterface
      */
-    public function setJoseType(string $joseType = self::JWT): JoseHelperInterface
+    public function setType(string $joseType = self::JWT): JoseHelperInterface
     {
         if (!\in_array(strtoupper($joseType), [self::JWT, self::JWE], true)) {
             throw new \InvalidArgumentException('Only JWE and JWT are supported yet');
@@ -120,7 +120,7 @@ class JoseHelper implements JoseHelperInterface
      * @param string $token
      * @return JoseHelperInterface
      */
-    public function setJoseToken(string $token): JoseHelperInterface
+    public function setToken(string $token): JoseHelperInterface
     {
         $this->token = $token;
         return $this;
@@ -133,7 +133,7 @@ class JoseHelper implements JoseHelperInterface
      * @param int $sig
      * @return JoseHelperInterface
      */
-    public function setJoseAlgorithm(string $keyAlg, string $keyContent = null, int $sig = 0) : JoseHelperInterface
+    public function setAlgorithm(string $keyAlg, string $keyContent = null, int $sig = 0) : JoseHelperInterface
     {
         $this->keyAlg = $keyAlg;
         $this->keyContent = $keyContent;
@@ -148,7 +148,7 @@ class JoseHelper implements JoseHelperInterface
      * @return string
      * @throws \Exception
      */
-    public function createJoseToken(array $payload): string
+    public function createToken(array $payload): string
     {
         $encodedPayload = $this->jsonConverter->encode($payload);
         if ($this->joseType === self::JWT) {
@@ -189,7 +189,7 @@ class JoseHelper implements JoseHelperInterface
      * @return bool
      * @throws \Exception
      */
-    public function verifyJoseToken(): bool
+    public function verifyToken(): bool
     {
         unset($this->jwe, $this->jws);
         if ($this->joseType === self::JWT)  {

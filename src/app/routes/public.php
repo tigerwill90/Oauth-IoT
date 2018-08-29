@@ -67,7 +67,7 @@
     $app->get('/weather', function(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface {
 
         $curl = curl_init('http://192.168.192.80/protected');
-        $authorization = 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MzU0NzAxNjUsImp0aSI6IjAxMjM0NTY3ODkifQ.Snhe3Sfr-cVVsTn5VzDy4YsWJaa_RkGPXHStx1wBJYo';
+        $authorization = 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MzU1NTUwMDcsImp0aSI6IjAxMjM0NTY3ODkifQ.BzYb-BUbMYSfRAF8PdM8L6U9pU3QtexyJKRz4cbkeqs';
         curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json' , $authorization));
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_HEADERFUNCTION, 'HandleHeaderLine');

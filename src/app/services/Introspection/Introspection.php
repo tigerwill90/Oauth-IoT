@@ -212,6 +212,11 @@ class Introspection implements IntrospectionInterface
     public function introspectToken(\Psr\Http\Message\ServerRequestInterface $request, string $secretKey, string $keyType) : bool
     {
         self::$time = time();
+
+        if ($this->claimsChecker === null) {
+            throw new \InvalidArgumentException('ClaimCheckerInterface dependency unsatisfied');
+        }
+
         $this->invalidClaims = [];
         $args = $request->getParsedBody();
 
@@ -240,7 +245,7 @@ class Introspection implements IntrospectionInterface
         // Retrieve headers parameters, catch an invalid token
         try {
             $headers = $this->joseHelper
-                ->setJoseToken($args[$this->token])
+                ->setToken($args[$this->token])
                 ->getHeaders();
         } catch (\Exception $e) {
             $this->setErrorResponse();
@@ -300,9 +305,9 @@ class Introspection implements IntrospectionInterface
         try {
             $isVerified = $this->joseHelper
                 ->setJwkKey($secretKey, $keyType)
-                ->setJoseAlgorithm($this->alg, $headers['enc'])
-                ->setJoseType($headers['typ'])
-                ->verifyJoseToken();
+                ->setAlgorithm($this->alg, $headers['enc'])
+                ->setType($headers['typ'])
+                ->verifyToken();
         } catch (\Exception $e) {
             $this->setErrorResponse();
             return false;

@@ -50,7 +50,7 @@ final class IntrospectionController
             ->injectClaimsChecker(new ClaimsCheckerRules())
             ->setRequestParameterToVerify('token')
             ->setClaimsToVerify([IntrospectionInterface::CLAIM_EXP, IntrospectionInterface::CLAIM_JTI])
-            ->setActiveResponseParameter(['exp'], 'John Doe', 2564, ['key' => $encryptedKey])
+            ->setActiveResponseParameter([], null, null, ['key' => $encryptedKey])
             ->introspectToken($request, getenv('KEY'), 'oct');
 
         $body = $response->getBody();

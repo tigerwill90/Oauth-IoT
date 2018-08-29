@@ -86,6 +86,7 @@ interface IntrospectionInterface
 
     /**
      * Set top-level members of inactive introspection response
+     * An inactive response SHOULD NOT give more information than an active=false response
      * Must follow RFC 7662 Section 2.2
      *
      * @param string[] $parameters

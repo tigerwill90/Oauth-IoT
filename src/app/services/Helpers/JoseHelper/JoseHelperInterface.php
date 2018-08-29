@@ -43,14 +43,14 @@ interface JoseHelperInterface
      * @param string $joseType
      * @return JoseHelperInterface
      */
-    public function setJoseType(string $joseType = self::JWT) : JoseHelperInterface;
+    public function setType(string $joseType = self::JWT) : JoseHelperInterface;
 
     /**
      * Set token
      * @param string $token
      * @return JoseHelperInterface
      */
-    public function setJoseToken(string $token) : JoseHelperInterface;
+    public function setToken(string $token) : JoseHelperInterface;
 
     /**
      * Set algorithm
@@ -59,7 +59,7 @@ interface JoseHelperInterface
      * @param int $sig
      * @return JoseHelperInterface
      */
-    public function setJoseAlgorithm(string $keyAlg, string $keyContent = null, int $sig = 0) : JoseHelperInterface;
+    public function setAlgorithm(string $keyAlg, string $keyContent = null, int $sig = 0) : JoseHelperInterface;
 
     /**
      * Create a new JWS/JWE token
@@ -67,14 +67,14 @@ interface JoseHelperInterface
      * @return string
      * @throws \Exception
      */
-    public function createJoseToken(array $payload) : string;
+    public function createToken(array $payload) : string;
 
     /**
      * Return true if the token is correctly signed, throw an exception if the token is invalid
      * @return bool
      * @throws \Exception
      */
-    public function verifyJoseToken() : bool;
+    public function verifyToken() : bool;
 
     /**
      * Return an array with all headers of JOSE, throw and exception if token is invalid

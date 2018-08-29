@@ -60,7 +60,7 @@ class IntrospectionTest extends TestCase
             ->add('A256GCM', new \Jose\Component\Encryption\Algorithm\ContentEncryption\A256GCM());
     }
 
-    private function getAlogrithmManagerHelper() : AlgorithmManagerHelperInterface
+    private function getAlgorithmManagerHelper() : AlgorithmManagerHelperInterface
     {
         return new AlgorithmManagerHelper($this->getAlgorithmManager());
     }
@@ -90,9 +90,9 @@ class IntrospectionTest extends TestCase
 
         return $joseHelper
             ->setJwk(JWK::create(['kty' => $keyType, 'k' => $key]))
-            ->setJoseType(JoseHelperInterface::JWT)
-            ->setJoseAlgorithm($alg)
-            ->createJoseToken($payload);
+            ->setType(JoseHelperInterface::JWT)
+            ->setAlgorithm($alg)
+            ->createToken($payload);
     }
 
     public function testShouldBeTrue() : void
@@ -103,7 +103,7 @@ class IntrospectionTest extends TestCase
     /** This method implement a full test for token introspection protocol with a valid PSR-7 request with valid signature */
     public function testIntrospectionShouldReturnActiveJsonResponse() : void
     {
-        $introspection = new Introspection($this->getJoseHelper(), $this->getAlogrithmManagerHelper());
+        $introspection = new Introspection($this->getJoseHelper(), $this->getAlgorithmManagerHelper());
         $token = $this->getJwsObject(self::KEY, time(), time(), time() + 60);
         $request = $this->requestFactory()->withParsedBody([Introspection::PARAM_TOKEN => $token, Introspection::PARAM_TYPE_HINT => 'HS256', 'foo' => 'foo', 'bar' => 'bar']);
         $isValid = $introspection
@@ -134,7 +134,7 @@ class IntrospectionTest extends TestCase
     /** This method implement a full test for token introspection protocol with a valid PSR-7 request with invalid signature */
     public function testIntrospectionShouldReturnInactiveJsonResponse() : void
     {
-        $introspection = new Introspection($this->getJoseHelper(), $this->getAlogrithmManagerHelper());
+        $introspection = new Introspection($this->getJoseHelper(), $this->getAlgorithmManagerHelper());
         $token = $this->getJwsObject('thisisawrongkey', time(), time(), time() + 60);
         $request = $this->requestFactory()->withParsedBody([Introspection::PARAM_TOKEN => $token, Introspection::PARAM_TYPE_HINT => 'HS256', 'foo' => 'foo', 'bar' => 'bar']);
         $isValid = $introspection
@@ -153,7 +153,7 @@ class IntrospectionTest extends TestCase
     /** This method implement a full test for token introspection protocol with an invalid PSR-7 request (invalid token) */
     public function testIntrospectionShouldReturnError() : void
     {
-        $introspection = new Introspection($this->getJoseHelper(), $this->getAlogrithmManagerHelper());
+        $introspection = new Introspection($this->getJoseHelper(), $this->getAlgorithmManagerHelper());
         $request = $this->requestFactory()->withParsedBody([Introspection::PARAM_TOKEN => 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MzU1NDY1MTMsImp0aSI6IjAxMjM0NY3ODkifQ.cKadPlZjIhlHmc1_ltuAjvoWEjMBdr3grips3dpjv2w', Introspection::PARAM_TYPE_HINT => 'HS256', 'foo' => 'foo', 'bar' => 'bar']);
 
         $isValid = $introspection
@@ -171,7 +171,7 @@ class IntrospectionTest extends TestCase
     /** This method implement multiple test for token introspection with invalid claim time */
     public function testIntrospectionShouldReturnInactiveJsonResponseWithTimeClaim() : void
     {
-        $introspection = new Introspection($this->getJoseHelper(), $this->getAlogrithmManagerHelper());
+        $introspection = new Introspection($this->getJoseHelper(), $this->getAlgorithmManagerHelper());
         $nbf = time() + 10;
         $iat = time() + 15;
         $exp = time() - 60;

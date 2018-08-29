@@ -8,6 +8,7 @@
 
 namespace Oauth\Controllers;
 
+use Jose\Component\Core\JWK;
 use Oauth\Services\Helpers\JoseHelperInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -37,9 +38,9 @@ final class ConnexionController
         try {
             $token = $this->joseHelper
                 ->setJwkKey(getenv('KEY'), 'oct')
-                ->setJoseType('JWE')
-                ->setJoseAlgorithm('A128KW', 'A256CBC-HS512')
-                ->createJoseToken($payload);
+                ->setType('JWT')
+                ->setAlgorithm('HS256')
+                ->createToken($payload);
         } catch (\Exception $e) {
             throw new \LogicException($e->getMessage());
         }
