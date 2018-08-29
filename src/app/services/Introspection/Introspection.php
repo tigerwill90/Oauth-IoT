@@ -37,13 +37,28 @@ class Introspection implements IntrospectionInterface
     /** @var string[] */
     private $optionalParameters = [];
 
-    /** @var string[] */
-    private $optionalMembers = [];
-
     /** @var array */
     private $jsonResponse = [
-        self::RESP_ACTIVE => null
+        self::RESP_ACTIVE => false
     ];
+
+    /** @var  string[] */
+    private $activeResponse = [];
+
+    /** @var array[string]string|int|bool */
+    private $optionalActiveResponse = [];
+
+    /** @var array */
+    private $inactiveResponse = [];
+
+    /** @var array[string]string|int|bool */
+    private $optionalInactiveResponse = [];
+
+    /** @var string */
+    private $username;
+
+    /** @var string */
+    private $clientId;
 
     /** @var ClaimsCheckerInterface  */
     private $claimsChecker;
@@ -115,21 +130,21 @@ class Introspection implements IntrospectionInterface
     }
 
     /**
-     * Set mandatory and optionally response member
+     * Set top-level members of active introspection response
+     * Must follow RFC 7662 Section 2.2
      *
-     * @param array $members => must be a list of standardized response parameter
-     * @param array $optional
+     * @param string[] $parameters => must be standardized response parameters
+     * @param string|null $username
+     * @param int|null $clientId
+     * @param array[string]string|int|bool $optional => non-standardized response parameters
      * @return IntrospectionInterface
      */
-    public function setResponseParameter(array $members = [self::RESP_ACTIVE], array $optional = []): IntrospectionInterface
+    public function setActiveResponseParameter(array $parameters = [], string $username = null, int $clientId = null, array $optional = []): IntrospectionInterface
     {
-        unset($this->jsonResponse);
-
         // take only standardized response parameters
-        $allowedMemberResponse = array_intersect(
-            $members,
+        $this->activeResponse = array_intersect(
+            $parameters,
             [
-                self::RESP_ACTIVE,
                 self::RESP_SCOPE,
                 self::RESP_TOKEN_TYPE,
                 self::RESP_EXP,
@@ -142,29 +157,47 @@ class Introspection implements IntrospectionInterface
             ]
         );
 
-        foreach ($allowedMemberResponse as $member) {
-            $this->jsonResponse[$member] = null;
+        if ($username !== null) {
+            $this->activeResponse[] = self::RESP_USERNAME;
+            $this->username = $username;
         }
 
-        $this->optionalMembers = $optional;
+        if ($clientId !== null) {
+            $this->activeResponse[] = self::RESP_CLIENT_ID;
+            $this->clientId = $clientId;
+        }
+
+        $this->optionalActiveResponse = $optional;
         return $this;
     }
 
     /**
-     * Add username and client id member to introspection response
+     * Set top-level members of inactive introspection response
+     * Must follow RFC 7662 Section 2.2
      *
-     * @param string|null $username
-     * @param int|null $clientId
+     * @param string[] $parameters
+     * @param array[string]string|int|bool $optional
      * @return IntrospectionInterface
      */
-    public function addUserInformation(string $username = null, int $clientId = null) : IntrospectionInterface
+    public function setInactiveResponseParameter(array $parameters = [], array $optional = []) : IntrospectionInterface
     {
-        if ($username !== null) {
-            $this->jsonResponse[self::RESP_USERNAME] = $username;
-        }
-        if ($clientId !== null) {
-            $this->jsonResponse[self::RESP_CLIENT_ID] = $clientId;
-        }
+        // take only standardized response parameters
+        $this->inactiveResponse = array_intersect(
+            $parameters,
+            [
+                self::RESP_SCOPE,
+                self::RESP_TOKEN_TYPE,
+                self::RESP_EXP,
+                self::RESP_IAT,
+                self::RESP_NBF,
+                self::RESP_SUB,
+                self::RESP_AUD,
+                self::RESP_ISS,
+                self::RESP_JTI
+            ]
+        );
+
+        $this->optionalInactiveResponse = $optional;
         return $this;
     }
 
@@ -198,7 +231,6 @@ class Introspection implements IntrospectionInterface
 
         // Check if hint type is a supported algorithm
         if (null !== $this->tokenTypeHint && !\in_array(strtoupper($args[$this->tokenTypeHint]), $this->algorithmHelper->getAllAlgorithmAlias(), true)) {
-            error_log($this->tokenTypeHint);
             $this->setErrorResponse();
             return false;
         }
@@ -260,7 +292,6 @@ class Introspection implements IntrospectionInterface
 
         // Check if enc is a supported algorithm
         if ($headers['typ'] === JoseHelperInterface::JWE && !\in_array($headers['enc'], $this->algorithmHelper->getContentEncryptionAlgorithmAlias(), true)) {
-            error_log('bug with jws');
             $this->setErrorResponse();
             return false;
         }
@@ -332,26 +363,42 @@ class Introspection implements IntrospectionInterface
      */
     private function setStandardResponse(array $claims, bool $active) : self
     {
-        // Give detail only if token is active
+
         if ($active) {
-            $this->jsonResponse[self::RESP_ACTIVE] = true;
-            foreach ($this->jsonResponse as $member => $value) {
-                // don't override claims already set
-                if ($member !== self::RESP_ACTIVE && $member !== self::RESP_USERNAME && $member !== self::RESP_CLIENT_ID) {
-                    $this->jsonResponse[$member] = $claims[$member];
-                }
-                // process response for token hint type
-                if ($member === self::RESP_TOKEN_TYPE && null !== $this->tokenTypeHint) {
-                    $this->jsonResponse[$member] = $this->alg;
-                }
+            $this->jsonResponse[self::RESP_ACTIVE] = $active;
+            $arrayResponse = $this->activeResponse;
+            $arrayOptionalResponse = $this->optionalActiveResponse;
+        } else {
+            $arrayResponse = $this->inactiveResponse;
+            $arrayOptionalResponse = $this->optionalInactiveResponse;
+        }
+
+        // Set active response with claims
+        foreach ($arrayResponse as $member) {
+            // specific handling for token type hint
+            if ($member === self::RESP_TOKEN_TYPE && null !== $this->tokenTypeHint) {
+                $this->jsonResponse[$member] = $this->alg;
+                continue;
+            }
+            // specific handling for username
+            if ($active && $member === self::RESP_USERNAME) {
+                $this->jsonResponse[$member] = $this->username;
+                continue;
+            }
+            // specific handling for client id
+            if ($active && $member === self::RESP_CLIENT_ID) {
+                $this->jsonResponse[$member] = $this->clientId;
+                continue;
             }
 
-            // Set optional response parameter
-            foreach ($this->optionalMembers as $member => $value) {
-                $this->jsonResponse[$member] = $value;
+            if (array_key_exists($member, $claims)) {
+                $this->jsonResponse[$member] = $claims[$member];
             }
-        } else {
-            $this->jsonResponse = [self::RESP_ACTIVE => false];
+        }
+
+        // Set optional response parameter
+        foreach ($arrayOptionalResponse as $member => $value) {
+            $this->jsonResponse[$member] = $value;
         }
 
         return $this;
@@ -370,7 +417,7 @@ class Introspection implements IntrospectionInterface
     /**
      * Return an array with all invalid claims
      *
-     * @return array
+     * @return array[string]string|int
      */
     public function getInvalidClaims(): array
     {

@@ -83,7 +83,7 @@ class IntrospectionTest extends TestCase
             Introspection::CLAIM_AUD => 'audience',
             Introspection::CLAIM_SUB => 'subject',
             Introspection::CLAIM_JTI => 'nonce',
-            Introspection::CLAIM_SCOPE => 'write_rs,read_rs'
+            Introspection::CLAIM_SCOPE => 'write_rs read_rs'
         ];
 
         $joseHelper = $this->getJoseHelper();
@@ -110,8 +110,7 @@ class IntrospectionTest extends TestCase
             ->injectClaimsChecker(new ExtendClaimsTest())
             ->setClaimsToVerify([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
             ->setRequestParameterToVerify(Introspection::PARAM_TOKEN, Introspection::PARAM_TYPE_HINT, ['foo', 'bar'])
-            ->setResponseParameter([Introspection::RESP_ACTIVE, Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], ['key' => '/super/secret/'])
-            ->addUserInformation('John Doe', 10)
+            ->setActiveResponseParameter([Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], 'John Doe', 10, ['key' => '/super/secret/'])
             ->introspectToken($request, self::KEY, 'oct');
 
 
@@ -142,8 +141,7 @@ class IntrospectionTest extends TestCase
             ->injectClaimsChecker(new ExtendClaimsTest())
             ->setClaimsToVerify([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
             ->setRequestParameterToVerify(Introspection::PARAM_TOKEN, Introspection::PARAM_TYPE_HINT, ['foo', 'bar'])
-            ->setResponseParameter([Introspection::RESP_ACTIVE, Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], ['key' => '/super/secret/'])
-            ->addUserInformation('John Doe', 10)
+            ->setActiveResponseParameter([Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], 'John Doe', 10, ['key' => '/super/secret/'])
             ->introspectToken($request, self::KEY, 'oct');
 
         $this->assertTrue($isValid);
@@ -162,8 +160,7 @@ class IntrospectionTest extends TestCase
             ->injectClaimsChecker(new ExtendClaimsTest())
             ->setClaimsToVerify([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
             ->setRequestParameterToVerify(Introspection::PARAM_TOKEN, Introspection::PARAM_TYPE_HINT, ['foo', 'bar'])
-            ->setResponseParameter([Introspection::RESP_ACTIVE, Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], ['key' => '/super/secret/'])
-            ->addUserInformation('John Doe', 10)
+            ->setActiveResponseParameter([Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], 'John Doe', 10, ['key' => '/super/secret/'])
             ->introspectToken($request, self::KEY, 'oct');
 
         $this->assertFalse($isValid);
@@ -191,8 +188,7 @@ class IntrospectionTest extends TestCase
             ->injectClaimsChecker(new ExtendClaimsTest())
             ->setClaimsToVerify([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
             ->setRequestParameterToVerify(Introspection::PARAM_TOKEN, Introspection::PARAM_TYPE_HINT, ['foo', 'bar'])
-            ->setResponseParameter([Introspection::RESP_ACTIVE, Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], ['key' => '/super/secret/'])
-            ->addUserInformation('John Doe', 10)
+            ->setActiveResponseParameter([Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], 'John Doe', 10, ['key' => '/super/secret/'])
             ->introspectToken($request1, self::KEY, 'oct');
 
         $this->assertTrue($isValid1);
@@ -204,8 +200,7 @@ class IntrospectionTest extends TestCase
             ->injectClaimsChecker(new ExtendClaimsTest())
             ->setClaimsToVerify([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
             ->setRequestParameterToVerify(Introspection::PARAM_TOKEN, Introspection::PARAM_TYPE_HINT, ['foo', 'bar'])
-            ->setResponseParameter([Introspection::RESP_ACTIVE, Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], ['key' => '/super/secret/'])
-            ->addUserInformation('John Doe', 10)
+            ->setActiveResponseParameter([Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], 'John Doe', 10, ['key' => '/super/secret/'])
             ->introspectToken($request2, self::KEY, 'oct');
 
         $this->assertTrue($isValid2);
@@ -217,8 +212,7 @@ class IntrospectionTest extends TestCase
             ->injectClaimsChecker(new ExtendClaimsTest())
             ->setClaimsToVerify([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
             ->setRequestParameterToVerify(Introspection::PARAM_TOKEN, Introspection::PARAM_TYPE_HINT, ['foo', 'bar'])
-            ->setResponseParameter([Introspection::RESP_ACTIVE, Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], ['key' => '/super/secret/'])
-            ->addUserInformation('John Doe', 10)
+            ->setActiveResponseParameter([Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], 'John Doe', 10, ['key' => '/super/secret/'])
             ->introspectToken($request3, self::KEY, 'oct');
 
         $this->assertTrue($isValid3);
@@ -230,8 +224,7 @@ class IntrospectionTest extends TestCase
             ->injectClaimsChecker(new ExtendClaimsTest())
             ->setClaimsToVerify([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
             ->setRequestParameterToVerify(Introspection::PARAM_TOKEN, Introspection::PARAM_TYPE_HINT, ['foo', 'bar'])
-            ->setResponseParameter([Introspection::RESP_ACTIVE, Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], ['key' => '/super/secret/'])
-            ->addUserInformation('John Doe', 10)
+            ->setActiveResponseParameter([Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], 'John Doe', 10, ['key' => '/super/secret/'])
             ->introspectToken($request4, self::KEY, 'oct');
 
         $this->assertTrue($isValid4);

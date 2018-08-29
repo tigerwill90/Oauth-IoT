@@ -37,8 +37,8 @@ final class ConnexionController
         try {
             $token = $this->joseHelper
                 ->setJwkKey(getenv('KEY'), 'oct')
-                ->setJoseType('JWT')
-                ->setJoseAlgorithm('HS256')
+                ->setJoseType('JWE')
+                ->setJoseAlgorithm('A128KW', 'A256CBC-HS512')
                 ->createJoseToken($payload);
         } catch (\Exception $e) {
             throw new \LogicException($e->getMessage());

@@ -59,7 +59,7 @@ class ExtendClaimsTest implements ClaimsCheckerInterface
      */
     public function verifyScope(string $scope): bool
     {
-        return $this->arrayEqual(explode(',', $scope), ['read_rs', 'write_rs']);
+        return $this->arrayEqual(explode(' ', $scope), ['read_rs', 'write_rs']);
     }
 
     /**

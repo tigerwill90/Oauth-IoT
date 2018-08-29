@@ -73,24 +73,26 @@ interface IntrospectionInterface
     public function setRequestParameterToVerify(string $token = self::PARAM_TOKEN, string $tokenTypeHint = null, array $optional = []) : IntrospectionInterface;
 
     /**
-     * Set top-level members of introspection response
+     * Set top-level members of active introspection response
      * Must follow RFC 7662 Section 2.2
      *
-     * @param array $members => must be standardized response parameters
-     * @param string[] $optional => is non-standardized response parameters
-     * @return IntrospectionInterface
-     */
-    public function setResponseParameter(array $members = [self::RESP_ACTIVE], array $optional = []) : IntrospectionInterface;
-
-    /**
-     * Add username and client id member to introspection response
-     * Must follow RFC 7662 Section 2.2
-     *
+     * @param string[] $parameters => must be standardized response parameters
      * @param string|null $username
      * @param int|null $clientId
+     * @param array[string]string $optional => non-standardized response parameters
      * @return IntrospectionInterface
      */
-    public function addUserInformation(string $username = null, int $clientId = null) : IntrospectionInterface;
+    public function setActiveResponseParameter(array $parameters = [], string $username = null, int $clientId = null, array $optional = []) : IntrospectionInterface;
+
+    /**
+     * Set top-level members of inactive introspection response
+     * Must follow RFC 7662 Section 2.2
+     *
+     * @param string[] $parameters
+     * @param array[string]string $optional
+     * @return IntrospectionInterface
+     */
+    public function setInactiveResponseParameter(array $parameters = [], array $optional = []) : IntrospectionInterface;
 
     /**
      * Introspect the given token and return true if the token is well formed
@@ -112,7 +114,7 @@ interface IntrospectionInterface
     /**
      * Return an array with all invalid claims
      *
-     * @return array
+     * @return array[string]string|int
      */
     public function getInvalidClaims() : array;
 }
