@@ -28,7 +28,7 @@ final class ConnexionController
         $this->logger = $logger;
     }
 
-    public function __invoke(ServerRequestInterface $request, ResponseInterface $response)
+    public function __invoke(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface
     {
         $payload = [
             'exp' => time() + 1000,

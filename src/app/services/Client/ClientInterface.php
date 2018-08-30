@@ -11,6 +11,12 @@ namespace Oauth\Services\ClientService;
 interface ClientInterface
 {
     /**
+     * Return an unique client id
+     * @return int
+     */
+    public function getClientId() : int;
+
+    /**
      * Return an array with registration response details
      * @return array
      */

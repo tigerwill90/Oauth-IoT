@@ -6,7 +6,7 @@
  * Time: 1:04 AM
  */
 
-namespace Oauth\Services\Validator\Parameters;
+namespace Oauth\Services\Validators\Parameters;
 
 use Respect\Validation\Validator;
 
@@ -18,6 +18,6 @@ class ClientNameRule extends ParameterRule
      */
     public function getValidator(): Validator
     {
-            return Validator::alnum()->length(3, 80)->notBlank();
+        return Validator::alnum()->length(3, 80)->notBlank();
     }
 }

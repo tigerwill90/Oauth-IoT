@@ -8,7 +8,6 @@
 
 namespace Oauth\services\ClientService;
 
-
 interface ClientStorageInterface
 {
 

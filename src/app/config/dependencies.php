@@ -24,6 +24,10 @@ $container[\Oauth\Controllers\ConnexionController::class] = function (ContainerI
   return new \Oauth\Controllers\ConnexionController($c->get('JoseHelper'), $c->get('debugLogger'));
 };
 
+$container[\Oauth\Controllers\ClientRegistrationController::class] = function (ContainerInterface $c) {
+    return new \Oauth\Controllers\ClientRegistrationController($c->get('RequestValidatorManager'));
+};
+
 /**
  * Introspection service
  * @param ContainerInterface $c
@@ -65,6 +69,28 @@ $container['AlgorithmManagerHelper'] = function (ContainerInterface $c) {
 $container['AesHelper'] = function () {
     return new \Oauth\Services\Helpers\AesHelper();
 };
+
+/**
+ * Request validator manager
+ * @param ContainerInterface $c
+ * @return \Oauth\Services\Validators\RequestValidatorManager
+ */
+$container['RequestValidatorManager'] = function (ContainerInterface $c) {
+    return new \Oauth\Services\Validators\RequestValidatorManager([
+        'registration' => $c->get('RegistrationRequestValidator')
+    ]);
+};
+
+/**
+ * Registration request validator
+ * @return \Oauth\Services\Validators\RequestValidators\ClientRegistrationRequestValidator
+ */
+$container['RegistrationRequestValidator'] = function () {
+    return new \Oauth\Services\Validators\RequestValidators\ClientRegistrationRequestValidator();
+};
+
+
+
 
 /**
  * Algorithm manager factory

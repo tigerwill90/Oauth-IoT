@@ -14,6 +14,7 @@
 
     $app->post('/introspect', Oauth\Controllers\IntrospectionController::class);
     $app->get('/connect', Oauth\Controllers\ConnexionController::class);
+    $app->post('/clients/register', \Oauth\Controllers\ClientRegistrationController::class);
 
     /**
      * Post route provide

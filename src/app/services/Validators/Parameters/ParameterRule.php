@@ -6,7 +6,7 @@
  * Time: 1:02 AM
  */
 
-namespace Oauth\Services\Validator\Parameters;
+namespace Oauth\Services\Validators\Parameters;
 
 use Respect\Validation\Validator;
 
@@ -17,7 +17,6 @@ use Respect\Validation\Validator;
  */
 abstract class ParameterRule
 {
-
     /** @var bool */
     protected $required;
 
