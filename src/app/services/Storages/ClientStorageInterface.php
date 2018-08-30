@@ -6,9 +6,10 @@
  * Time: 11:37 PM
  */
 
-namespace Oauth\services\ClientService;
+namespace Oauth\Services\Storage;
 
 interface ClientStorageInterface
 {
+    public function createClient($client) : void;
 
 }

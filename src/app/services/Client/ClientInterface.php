@@ -6,15 +6,25 @@
  * Time: 11:28 PM
  */
 
-namespace Oauth\Services\ClientService;
+namespace Oauth\Services\Clients;
 
-interface ClientInterface
+interface ClientInterface extends \JsonSerializable
 {
     /**
      * Return an unique client id
-     * @return int
+     * @return string
      */
-    public function getClientId() : int;
+    public function getClientId() : string;
+
+    public function setClientId(string $clientId) : ClientInterface;
+
+    public function getClientSecret() : string;
+
+    public function setClientSecret(string $registrationDate) : ClientInterface;
+
+    public function setRegistrationDate(\DateTime $date) : ClientInterface;
+
+    public function getRegistrationDate() : string;
 
     /**
      * Return an array with registration response details

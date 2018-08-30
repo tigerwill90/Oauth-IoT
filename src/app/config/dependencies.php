@@ -25,7 +25,7 @@ $container[\Oauth\Controllers\ConnexionController::class] = function (ContainerI
 };
 
 $container[\Oauth\Controllers\ClientRegistrationController::class] = function (ContainerInterface $c) {
-    return new \Oauth\Controllers\ClientRegistrationController($c->get('RequestValidatorManager'));
+    return new \Oauth\Controllers\ClientRegistrationController($c->get('RequestValidatorManager'), $c->get('ClientRegister'));
 };
 
 /**
@@ -63,7 +63,6 @@ $container['AlgorithmManagerHelper'] = function (ContainerInterface $c) {
 
 /**
  * AesHelper Helper
- *
  * @return \Oauth\Services\Helpers\AesHelper
  */
 $container['AesHelper'] = function () {
@@ -71,14 +70,32 @@ $container['AesHelper'] = function () {
 };
 
 /**
+ * ClientRegister
+ * @param ContainerInterface $c
+ * @return \Oauth\Services\Registrations\ClientRegister
+ */
+$container['ClientRegister'] = function (ContainerInterface $c) {
+    return  new \Oauth\Services\Registrations\ClientRegister($c->get('PdoClientStorage'), $c->get('RandomFactory'));
+};
+
+/**
+ * Pdo client storage
+ * @param ContainerInterface $c
+ * @return \Oauth\Services\Storage\PDOClientStorage
+ */
+$container['PdoClientStorage'] = function (ContainerInterface $c) {
+    return new \Oauth\Services\Storage\PDOClientStorage($c->get('pdo'));
+};
+
+/**
  * Request validator manager
  * @param ContainerInterface $c
- * @return \Oauth\Services\Validators\RequestValidatorManager
+ * @return \Oauth\Services\Validators\ValidatorManagerInterface
  */
 $container['RequestValidatorManager'] = function (ContainerInterface $c) {
-    return new \Oauth\Services\Validators\RequestValidatorManager([
-        'registration' => $c->get('RegistrationRequestValidator')
-    ]);
+   $requestValidatorManager = new \Oauth\Services\Validators\RequestValidatorManager();
+    return $requestValidatorManager
+            ->add('registration', $c->get('RegistrationRequestValidator'));
 };
 
 /**
@@ -89,8 +106,14 @@ $container['RegistrationRequestValidator'] = function () {
     return new \Oauth\Services\Validators\RequestValidators\ClientRegistrationRequestValidator();
 };
 
-
-
+/**
+ * Random factory
+ * @return \RandomLib\Generator
+ */
+$container['RandomFactory'] = function () {
+    $factory = new \RandomLib\Factory();
+    return $factory->getGenerator(new \SecurityLib\Strength(\SecurityLib\Strength::MEDIUM));
+};
 
 /**
  * Algorithm manager factory
@@ -120,6 +143,7 @@ $container['AlgorithmManagerFactory'] = function () {
 };
 
 /**
+ * Compression method manager
  * @return \Jose\Component\Encryption\Compression\CompressionMethodManager
  */
 $container['compressionMethodManager'] = function () {
@@ -137,4 +161,14 @@ $container['debugLogger'] = function () {
   $stream = new \Monolog\Handler\StreamHandler(__DIR__ . '/../../logs/oauth.log', \Monolog\Logger::DEBUG);
   $log->pushHandler($stream);
   return $log;
+};
+
+/**
+ * PDO
+ * @return PDO
+ */
+$container['pdo'] = function () {
+    $pdo = new PDO('mysql:host=' . getenv('DB_HOST') . ';' . 'dbname=' . getenv('DB_NAME') . ';charset=utf8', getenv('DB_USER'), getenv('DB_PASSWORD'));
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    return $pdo;
 };

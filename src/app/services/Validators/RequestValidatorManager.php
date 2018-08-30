@@ -8,6 +8,7 @@
 
 namespace Oauth\Services\Validators;
 
+use Oauth\Services\Validators\RequestValidators\RequestValidator;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
@@ -30,14 +31,19 @@ final class RequestValidatorManager implements ValidatorManagerInterface
     /** @var array  */
     private $errors = [];
 
-    /**
-     * Register all RequestValidator
-     * RequestValidatorManager constructor.
-     * @param array $validators
-     */
-    public function __construct(array $validators)
+    public function __construct()
     {
-        $this->validators = $validators;
+    }
+
+    /**
+     * @param string $validatorAlias
+     * @param RequestValidator $validators
+     * @return ValidatorManagerInterface
+     */
+    public function add(string $validatorAlias, RequestValidator $validators) : ValidatorManagerInterface
+    {
+        $this->validators[$validatorAlias] = $validators;
+        return $this;
     }
 
     /**

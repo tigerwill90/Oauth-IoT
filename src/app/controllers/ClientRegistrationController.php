@@ -8,6 +8,8 @@
 
 namespace Oauth\Controllers;
 
+use Oauth\Services\Clients\Client;
+use Oauth\Services\Registrations\ClientRegister;
 use Oauth\Services\Validators\ValidatorManagerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -17,9 +19,13 @@ final class ClientRegistrationController
     /** @var ValidatorManagerInterface  */
     private $requestValidatorManager;
 
-    public function __construct(ValidatorManagerInterface $requestValidatorManager)
+    /** @var ClientRegister */
+    private $clientRegister;
+
+    public function __construct(ValidatorManagerInterface $requestValidatorManager, ClientRegister $clientRegister)
     {
         $this->requestValidatorManager = $requestValidatorManager;
+        $this->clientRegister = $clientRegister;
     }
 
     public function __invoke(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface
@@ -27,7 +33,9 @@ final class ClientRegistrationController
         $body = $response->getBody();
 
         if ($this->requestValidatorManager->validate(['registration'], $request)) {
-            $body->write(json_encode(['msg' => 'created']));
+            $client = new Client($request->getParsedBody());
+            $this->clientRegister->register($client);
+            $body->write($this->clientRegister->getJsonResponse());
             return $response->withBody($body)->withHeader('Content-Type', 'application/json')->withStatus(201);
         }
 

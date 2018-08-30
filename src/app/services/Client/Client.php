@@ -6,10 +6,15 @@
  * Time: 7:02 PM
  */
 
-namespace Oauth\Services\ClientService;
+namespace Oauth\Services\Clients;
+
+use DateTime;
 
 class Client implements ClientInterface
 {
+    /** @var int */
+    private $id;
+
     /** @var int */
     private $clientId;
 
@@ -19,7 +24,7 @@ class Client implements ClientInterface
     /** @var string */
     private $clientName;
 
-    /** @var string[] */
+    /** @var string */
     private $grantType;
 
     /** @var string */
@@ -31,10 +36,8 @@ class Client implements ClientInterface
     /** @var  array */
     private $scope;
 
-    /** @var string */
+    /** @var DateTime */
     private $registrationDate;
-
-
 
     /**
      * Client constructor.
@@ -42,21 +45,56 @@ class Client implements ClientInterface
      */
     public function __construct(array $client)
     {
+        if (!empty($client['id'])) {
+            $this->id = (int)$client['id'];
+        }
+        if (!empty($client['client_id'])) {
+            $this->clientId = $client['client_id'];
+        }
+        if (!empty($client['client_secret'])) {
+            $this->clientSecret = $client['client_secret'];
+        }
+        if (!empty($client['registration_date'])) {
+            $this->registrationDate = $client['registration_date'];
+        }
+        $this->clientName = $client['client_name'];
+        $this->grantType = $client['grant_type'];
+        $this->clientType = $client['client_type'];
+        $this->redirectUri = $client['redirect_uri'];
+        $this->scope = $client['scope'];
     }
 
     /**
      * @return int
      */
-    public function getClientId(): int
+    public function getId() : int
+    {
+        return $this->id;
+    }
+
+    /**
+     * @param int $id
+     * @return Client
+     */
+    public function setId(int $id) : self
+    {
+        $this->id = $id;
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getClientId() : string
     {
         return $this->clientId;
     }
 
     /**
-     * @param int $clientId
+     * @param string $clientId
      * @return Client
      */
-    public function setClientId(int $clientId): self
+    public function setClientId(string $clientId) : ClientInterface
     {
         $this->clientId = $clientId;
         return $this;
@@ -65,7 +103,7 @@ class Client implements ClientInterface
     /**
      * @return string
      */
-    public function getClientSecret(): string
+    public function getClientSecret() : string
     {
         return $this->clientSecret;
     }
@@ -74,7 +112,7 @@ class Client implements ClientInterface
      * @param string $clientSecret
      * @return Client
      */
-    public function setClientSecret(string $clientSecret): self
+    public function setClientSecret(string $clientSecret) : ClientInterface
     {
         $this->clientSecret = $clientSecret;
         return $this;
@@ -83,7 +121,7 @@ class Client implements ClientInterface
     /**
      * @return string
      */
-    public function getClientName(): string
+    public function getClientName() : string
     {
         return $this->clientName;
     }
@@ -92,25 +130,25 @@ class Client implements ClientInterface
      * @param string $clientName
      * @return Client
      */
-    public function setClientName(string $clientName): self
+    public function setClientName(string $clientName) : self
     {
         $this->clientName = $clientName;
         return $this;
     }
 
     /**
-     * @return string[]
+     * @return string
      */
-    public function getGrantType(): array
+    public function getGrantType() : string
     {
         return $this->grantType;
     }
 
     /**
-     * @param string[] $grantType
+     * @param string $grantType
      * @return Client
      */
-    public function setGrantType(array $grantType): self
+    public function setGrantType(string $grantType) : self
     {
         $this->grantType = $grantType;
         return $this;
@@ -119,7 +157,7 @@ class Client implements ClientInterface
     /**
      * @return array
      */
-    public function getRedirectUri(): array
+    public function getRedirectUri() : array
     {
         return $this->redirectUri;
     }
@@ -128,7 +166,7 @@ class Client implements ClientInterface
      * @param array $redirectUri
      * @return Client
      */
-    public function setRedirectUri(array $redirectUri): self
+    public function setRedirectUri(array $redirectUri) : self
     {
         $this->redirectUri = $redirectUri;
         return $this;
@@ -137,7 +175,7 @@ class Client implements ClientInterface
     /**
      * @return array
      */
-    public function getScope(): array
+    public function getScope() : array
     {
         return $this->scope;
     }
@@ -146,7 +184,7 @@ class Client implements ClientInterface
      * @param array $scope
      * @return Client
      */
-    public function setScope(array $scope): self
+    public function setScope(array $scope) : self
     {
         $this->scope = $scope;
         return $this;
@@ -155,7 +193,7 @@ class Client implements ClientInterface
     /**
      * @return string
      */
-    public function getClientType(): string
+    public function getClientType() : string
     {
         return $this->clientType;
     }
@@ -164,7 +202,7 @@ class Client implements ClientInterface
      * @param string $clientType
      * @return Client
      */
-    public function setClientType(string $clientType): self
+    public function setClientType(string $clientType) : self
     {
         $this->clientType = $clientType;
         return $this;
@@ -173,16 +211,16 @@ class Client implements ClientInterface
     /**
      * @return string
      */
-    public function getRegistrationDate(): string
+    public function getRegistrationDate() : string
     {
-        return $this->registrationDate;
+        return $this->registrationDate->format('Y-m-d H:i:s');
     }
 
     /**
-     * @param string $registrationDate
+     * @param DateTime $registrationDate
      * @return Client
      */
-    public function setRegistrationDate(string $registrationDate): self
+    public function setRegistrationDate(DateTime $registrationDate) : ClientInterface
     {
         $this->registrationDate = $registrationDate;
         return $this;
@@ -193,8 +231,27 @@ class Client implements ClientInterface
      * Return an array with registration response details
      * @return array
      */
-    public function getRegistrationInformation(): array
+    public function getRegistrationInformation() : array
     {
         // TODO: Implement getRegistrationInformation() method.
+    }
+
+    /**
+     * Specify data which should be serialized to JSON
+     * @link https://php.net/manual/en/jsonserializable.jsonserialize.php
+     * @return mixed data which can be serialized by <b>json_encode</b>,
+     * which is a value of any type other than a resource.
+     * @since 5.4.0
+     */
+    public function jsonSerialize()
+    {
+        return [
+            'client_id' => $this->clientId,
+            'client_secret' => $this->clientSecret,
+            'client_name' => $this->clientName,
+            'client_type' => $this->clientType,
+            'grant_type' => $this->grantType,
+            'registration_date' => $this->registrationDate
+        ];
     }
 }

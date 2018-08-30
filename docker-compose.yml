@@ -35,6 +35,8 @@ services:
     restart: always
     volumes:
       - ./db/mysql:/var/lib/mysql
+    networks:
+      - app-tier
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
     container_name: phpmyadmin
@@ -45,6 +47,8 @@ services:
       - 8080:80
     environment:
       PMA_HOST: mysql
+    networks:
+      - app-tier
   memcached:
     image: bitnami/memcached:latest
     container_name: memcached
