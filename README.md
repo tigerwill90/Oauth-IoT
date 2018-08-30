@@ -7,9 +7,13 @@
 
 If you can satisfy the dependencies above, this is the easiest way to start an Oauth server
 
+Rename .env.example file to .env in racine folder
+
 ````
 make install
 ````
+Server will start automatically
+
 #### Windows
 Incoming...
 
