@@ -12,61 +12,26 @@ use Psr\Http\Message\ServerRequestInterface;
 
 class ClientRegister
 {
-    /** @var ClientValidator  */
-    private $validator;
-
-    /** @var ClientStorage  */
+    /** @var ClientStorageInterface */
     private $storage;
 
-    public function __construct(ClientValidator $validator, ClientStorage $storage)
+    public function __construct(ClientStorageInterface $storage)
     {
-        $this->validator = $validator;
         $this->storage = $storage;
     }
 
-    public function setSecretKeyParameter() : self
-    {
-
-    }
-
-    /**
-     * @param ServerRequestInterface $request
-     * @return ClientRegister
-     * @throws
-     */
-    public function register(ServerRequestInterface $request) : self
+    public function register(ClientInterface $client) : self
     {
         return $this;
     }
 
-    /**
-     * @param ServerRequestInterface $request
-     * @return ClientRegister
-     * @throws
-     */
-    public function update(ServerRequestInterface $request) : self {
-        return $this;
-    }
-
-    public function updateSecretKey(ServerRequestInterface $request) : self
+    public function unRegister(ClientInterface $client) : self
     {
         return $this;
     }
 
-    /**
-     * @return ClientRegister
-     * @throws
-     */
-    public function unRegister() : self
-    {
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
     public function getJsonResponse() : string
     {
-        return '';
+        return null;
     }
 }

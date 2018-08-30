@@ -10,7 +10,7 @@ namespace Oauth\Services\ClientService;
 
 use PDO;
 
-class PDOClientStorage extends ClientStorage
+class PDOClientStorage implements ClientStorageInterface
 {
     /** @var PDO  */
     private $pdo;

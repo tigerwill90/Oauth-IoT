@@ -8,7 +8,7 @@
 
 namespace Oauth\Services\ClientService;
 
-class Client
+class Client implements ClientInterface
 {
     /** @var int */
     private $clientId;
@@ -189,4 +189,12 @@ class Client
     }
 
 
+    /**
+     * Return an array with registration response details
+     * @return array
+     */
+    public function getRegistrationInformation(): array
+    {
+        // TODO: Implement getRegistrationInformation() method.
+    }
 }
