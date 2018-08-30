@@ -10,7 +10,7 @@ namespace Oauth\Services\Validator\Parameters;
 
 use Respect\Validation\Validator;
 
-class ClientName extends ParameterRule
+class ClientNameRule extends ParameterRule
 {
     /**
      * Get a validator instance

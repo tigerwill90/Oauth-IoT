@@ -8,8 +8,7 @@
 
 namespace Oauth\Services\ClientService;
 
-use Psr\Http\Message\ServerRequestInterface;
-
+// TODO namespace Registration => service
 class ClientRegister
 {
     /** @var ClientStorageInterface */

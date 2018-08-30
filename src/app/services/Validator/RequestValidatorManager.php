@@ -20,17 +20,17 @@ class RequestValidatorManager
     /**
      * <code>
      * $validators = [
-     *      'client' => ClientRegistrationValidator(),
+     *      'client' => RequestValidator(),
      *      'alias' => RequestValidator();
      * ]
-     * @var array
+     * @var array[string]RequestValidator
      */
     private $validators;
 
     /**
      * Register all RequestValidator
      * RequestValidatorManager constructor.
-     * @param array $validators
+     * @param array[string]RequestValidator $validators
      */
     public function __construct(array $validators)
     {
@@ -45,8 +45,10 @@ class RequestValidatorManager
      */
     public function validate(array $validatorsAlias, ServerRequestInterface $request) : bool
     {
-        return false;
-    }
+        foreach ($validatorsAlias as $alias) {
+            $this->validators[$alias]->validateParameters($request);
+        }
+     }
 
 
 }
