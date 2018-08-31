@@ -10,6 +10,7 @@ namespace Oauth\Services;
 
 use Oauth\Services\Helpers\AlgorithmManagerHelperInterface;
 use Oauth\Services\Helpers\JoseHelperInterface;
+use Psr\Log\LoggerInterface;
 
 class Introspection implements IntrospectionInterface
 {
@@ -66,14 +67,20 @@ class Introspection implements IntrospectionInterface
     /** @var int */
     private static $time;
 
+    /** @var LoggerInterface  */
+    private $logger;
+
     /**
      * Introspection constructor.
      * @param JoseHelperInterface $joseHelper
+     * @param AlgorithmManagerHelperInterface $algorithmHelper
+     * @param LoggerInterface|null $logger
      */
-    public function __construct(JoseHelperInterface $joseHelper, AlgorithmManagerHelperInterface $algorithmHelper)
+    public function __construct(JoseHelperInterface $joseHelper, AlgorithmManagerHelperInterface $algorithmHelper, LoggerInterface $logger = null)
     {
         $this->joseHelper = $joseHelper;
         $this->algorithmHelper = $algorithmHelper;
+        $this->logger = $logger;
     }
 
     /**
@@ -248,57 +255,57 @@ class Introspection implements IntrospectionInterface
                 ->setToken($args[$this->token])
                 ->getHeaders();
         } catch (\Exception $e) {
-            $this->setErrorResponse();
-            return false;
+            $this->setStandardResponse(false);
+            return true;
         }
 
         // Check mandatory header typ parameter
         if (!array_key_exists('typ', $headers)) {
-            $this->setErrorResponse();
-            return false;
+            $this->setStandardResponse(false);
+            return true;
         }
 
-        // Check if JoseHelper type is valid
+        // Check if Jose typ is valid
         if (!\in_array($headers['typ'], [JoseHelperInterface::JWT, JoseHelperInterface::JWE], true)) {
-            $this->setErrorResponse();
-            return false;
+            $this->setStandardResponse(false);
+            return true;
         }
 
         // Check mandatory header alg parameter
         if (!array_key_exists('alg', $headers)) {
-            $this->setErrorResponse();
-            return false;
+            $this->setStandardResponse(false);
+            return true;
         }
 
         // Check if alg is a supported algorithm for his token type
         if ($headers['typ'] === JoseHelperInterface::JWT && !\in_array($headers['alg'], $this->algorithmHelper->getSignatureAlgorithmAlias(), true)) {
-            $this->setErrorResponse();
-            return false;
+            $this->setStandardResponse(false);
+            return true;
         }
 
         if ($headers['typ'] === JoseHelperInterface::JWE && !\in_array($headers['alg'], $this->algorithmHelper->getKeyEncryptionAlgorithmAlias(), true)) {
-            $this->setErrorResponse();
-            return false;
+            $this->setStandardResponse(false);
+            return true;
         }
 
         // If type hint is defined, check if it's value match with header alg
         if (null !== $this->tokenTypeHint && $this->alg !== $headers['alg']) {
-            $this->setErrorResponse();
-            return false;
+            $this->setStandardResponse(false);
+            return true;
         }
 
         $this->alg = $headers['alg'];
 
         // Check if JWE has enc parameter
         if ($headers['typ'] === JoseHelperInterface::JWE && !isset($headers['enc'])) {
-            $this->setErrorResponse();
-            return false;
+            $this->setStandardResponse(false);
+            return true;
         }
 
         // Check if enc is a supported algorithm
         if ($headers['typ'] === JoseHelperInterface::JWE && !\in_array($headers['enc'], $this->algorithmHelper->getContentEncryptionAlgorithmAlias(), true)) {
-            $this->setErrorResponse();
-            return false;
+            $this->setStandardResponse(false);
+            return true;
         }
 
         // Check the authenticity of the token, catch an invalid token
@@ -309,16 +316,16 @@ class Introspection implements IntrospectionInterface
                 ->setType($headers['typ'])
                 ->verifyToken();
         } catch (\Exception $e) {
-            $this->setErrorResponse();
-            return false;
+            $this->setStandardResponse(false);
+            return true;
         }
 
         // Retrieve claims, catch an invalid JWE token
         try {
             $claims = $this->joseHelper->getClaims();
         } catch (\Exception $e) {
-            $this->setErrorResponse();
-            return false;
+            $this->setStandardResponse(false);
+            return true;
         }
 
         if ($isVerified) {
@@ -340,7 +347,7 @@ class Introspection implements IntrospectionInterface
             $active = false;
         }
 
-        $this->setStandardResponse($claims, $active);
+        $this->setStandardResponse($active, $claims);
         return true;
     }
 
@@ -366,7 +373,7 @@ class Introspection implements IntrospectionInterface
      * @param bool $active
      * @return Introspection
      */
-    private function setStandardResponse(array $claims, bool $active) : self
+    private function setStandardResponse(bool $active, array $claims = null) : self
     {
 
         if ($active) {
@@ -396,7 +403,7 @@ class Introspection implements IntrospectionInterface
                 continue;
             }
 
-            if (array_key_exists($member, $claims)) {
+            if (null !== $claims && array_key_exists($member, $claims)) {
                 $this->jsonResponse[$member] = $claims[$member];
             }
         }
@@ -505,5 +512,13 @@ class Introspection implements IntrospectionInterface
     private function checkScope(string $scope) : bool
     {
         return $this->claimsChecker->verifyScope($scope);
+    }
+
+    private function log(string $message, array $context = []) : self
+    {
+        if (null !== $this->logger) {
+            $this->logger->debug($message, $context);
+        }
+        return $this;
     }
 }

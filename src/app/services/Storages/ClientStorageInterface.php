@@ -10,6 +10,7 @@ namespace Oauth\Services\Storage;
 
 interface ClientStorageInterface
 {
-    public function createClient($client) : void;
+    public function create($client) : void;
 
+    public function delete(string $clientId) : void;
 }

@@ -165,7 +165,8 @@ class IntrospectionTest extends TestCase
 
         $this->assertFalse($isValid);
         $arrayResponse = json_decode($introspection->getJsonResponse(), true);
-        $this->assertEquals([Introspection::ERROR => Introspection::ERROR_MSG], $arrayResponse);
+        $this->assertArrayHasKey(Introspection::RESP_ACTIVE, $arrayResponse);
+        $this->assertFalse($arrayResponse[Introspection::RESP_ACTIVE]);
     }
 
     /** This method implement multiple test for token introspection with invalid claim time */

@@ -14,7 +14,10 @@
 
     $app->post('/introspect', Oauth\Controllers\IntrospectionController::class);
     $app->get('/connect', Oauth\Controllers\ConnexionController::class);
-    $app->post('/clients/register', \Oauth\Controllers\ClientRegistrationController::class);
+    $app->group('/clients', function() {
+        $this->post('', \Oauth\Controllers\CreateClientController::class);
+        $this->delete('/{clientId}', \Oauth\Controllers\DeleteClientController::class);
+    });
 
     /**
      * Post route provide

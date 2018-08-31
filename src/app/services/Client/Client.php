@@ -184,7 +184,7 @@ class Client implements ClientInterface
      * @param array $scope
      * @return Client
      */
-    public function setScope(array $scope) : self
+    public function setScope(array $scope) : ClientInterface
     {
         $this->scope = $scope;
         return $this;
@@ -233,7 +233,16 @@ class Client implements ClientInterface
      */
     public function getRegistrationInformation() : array
     {
-        // TODO: Implement getRegistrationInformation() method.
+        return [
+            'client_id' => $this->clientId,
+            'client_secret' => $this->clientSecret,
+            'client_name' => $this->clientName,
+            'client_type' => $this->clientType,
+            'grant_type' => $this->grantType,
+            'registration_date' => $this->getRegistrationDate(),
+            'scope' => $this->scope,
+            'redirect_url' => $this->redirectUri
+        ];
     }
 
     /**
@@ -251,7 +260,7 @@ class Client implements ClientInterface
             'client_name' => $this->clientName,
             'client_type' => $this->clientType,
             'grant_type' => $this->grantType,
-            'registration_date' => $this->registrationDate
+            'registration_date' => $this->getRegistrationDate()
         ];
     }
 }

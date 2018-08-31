@@ -8,59 +8,54 @@
 
 namespace Oauth\Services\Validators;
 
-use Oauth\Services\Validators\RequestValidators\RequestValidator;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * Responsibility : Manage and call all request validator
- * Class RequestValidatorManager
+ * Class ValidatorManager
  * @package Oauth\Services\Validators
  */
-final class RequestValidatorManager implements ValidatorManagerInterface
+final class ValidatorManager implements ValidatorManagerInterface
 {
     /**
      * <code>
      * $validators = [
-     *      'client' => RequestValidator(),
-     *      'alias' => RequestValidator();
+     *      'client' => Validator(),
+     *      'alias' => Validator();
      * ]
-     * @var array[string]RequestValidator
+     * @var array[string]Validator
      */
     private $validators;
 
     /** @var array  */
     private $errors = [];
 
-    public function __construct()
-    {
-    }
-
     /**
+     * Add a new Validator
      * @param string $validatorAlias
-     * @param RequestValidator $validators
+     * @param Validator $validators
      * @return ValidatorManagerInterface
      */
-    public function add(string $validatorAlias, RequestValidator $validators) : ValidatorManagerInterface
+    public function add(string $validatorAlias, Validator $validators) : ValidatorManagerInterface
     {
         $this->validators[$validatorAlias] = $validators;
         return $this;
     }
 
     /**
-     * Validate the request for all RequestValidator
+     * Validate the request for all Validator
      * @param string[] $validatorsAlias
      * @param ServerRequestInterface $request
      * @return bool
      */
     public function validate(array $validatorsAlias, ServerRequestInterface $request) : bool
     {
-        $args = $request->getParsedBody() ?? [];
         foreach ($validatorsAlias as $alias) {
             if ($this->validators[$alias] === null) {
                 throw new \LogicException('No validator is register for ' . $alias . ' alias');
             }
-            $this->validators[$alias]->checkParametersExist($args);
-            $this->validators[$alias]->validateParameters($args);
+            $this->validators[$alias]->checkParametersExist($request);
+            $this->validators[$alias]->validateParameters($request);
             if (!empty($this->validators[$alias]->getErrorsMessages())) {
                 $this->errors[$alias] = $this->validators[$alias]->getErrorsMessages();
             }

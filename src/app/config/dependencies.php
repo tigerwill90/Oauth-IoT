@@ -5,8 +5,6 @@ use Psr\Container\ContainerInterface;
 $container = $app->getContainer();
 
 /**
- * Introspection controller
- *
  * @param ContainerInterface $c
  * @return \Oauth\Controllers\IntrospectionController
  */
@@ -15,8 +13,6 @@ $container[\Oauth\Controllers\IntrospectionController::class] = function (Contai
 };
 
 /**
- * Connexion controller
- *
  * @param ContainerInterface $c
  * @return \Oauth\Controllers\ConnexionController
  */
@@ -24,21 +20,27 @@ $container[\Oauth\Controllers\ConnexionController::class] = function (ContainerI
   return new \Oauth\Controllers\ConnexionController($c->get('JoseHelper'), $c->get('debugLogger'));
 };
 
-$container[\Oauth\Controllers\ClientRegistrationController::class] = function (ContainerInterface $c) {
-    return new \Oauth\Controllers\ClientRegistrationController($c->get('RequestValidatorManager'), $c->get('ClientRegister'));
+/**
+ * @param ContainerInterface $c
+ * @return \Oauth\Controllers\CreateClientController
+ */
+$container[\Oauth\Controllers\CreateClientController::class] = function (ContainerInterface $c) {
+    return new \Oauth\Controllers\CreateClientController($c->get('ValidatorManager'), $c->get('ClientRegister'));
+};
+
+$container[\Oauth\Controllers\DeleteClientController::class] = function (ContainerInterface $c) {
+  return new \Oauth\Controllers\DeleteClientController($c->get('ValidatorManager'), $c->get('ClientRegister'));
 };
 
 /**
- * Introspection service
  * @param ContainerInterface $c
  * @return \Oauth\Services\Introspection
  */
 $container['IntrospectionService'] = function (ContainerInterface $c) {
-    return new \Oauth\Services\Introspection($c->get('JoseHelper'), $c->get('AlgorithmManagerHelper'));
+    return new \Oauth\Services\Introspection($c->get('JoseHelper'), $c->get('AlgorithmManagerHelper'), $c->get('debugLogger'));
 };
 
 /**
- * Authentication service
  * @return \Oauth\Services\Authentication
  */
 $container['AuthenticationService'] = function () {
@@ -62,7 +64,6 @@ $container['AlgorithmManagerHelper'] = function (ContainerInterface $c) {
 };
 
 /**
- * AesHelper Helper
  * @return \Oauth\Services\Helpers\AesHelper
  */
 $container['AesHelper'] = function () {
@@ -70,16 +71,14 @@ $container['AesHelper'] = function () {
 };
 
 /**
- * ClientRegister
  * @param ContainerInterface $c
  * @return \Oauth\Services\Registrations\ClientRegister
  */
 $container['ClientRegister'] = function (ContainerInterface $c) {
-    return  new \Oauth\Services\Registrations\ClientRegister($c->get('PdoClientStorage'), $c->get('RandomFactory'));
+    return  new \Oauth\Services\Registrations\ClientRegister($c->get('PdoClientStorage'), $c->get('RandomFactory'), $c->get('debugLogger'));
 };
 
 /**
- * Pdo client storage
  * @param ContainerInterface $c
  * @return \Oauth\Services\Storage\PDOClientStorage
  */
@@ -88,26 +87,30 @@ $container['PdoClientStorage'] = function (ContainerInterface $c) {
 };
 
 /**
- * Request validator manager
  * @param ContainerInterface $c
  * @return \Oauth\Services\Validators\ValidatorManagerInterface
  */
-$container['RequestValidatorManager'] = function (ContainerInterface $c) {
-   $requestValidatorManager = new \Oauth\Services\Validators\RequestValidatorManager();
-    return $requestValidatorManager
-            ->add('registration', $c->get('RegistrationRequestValidator'));
+$container['ValidatorManager'] = function (ContainerInterface $c) {
+   $validatorManager = new \Oauth\Services\Validators\ValidatorManager();
+    return $validatorManager
+            ->add('register', $c->get('ClientRegisterValidator'))
+            ->add('unregister', $c->get('ClientUnregisterValidator'));
 };
 
 /**
- * Registration request validator
- * @return \Oauth\Services\Validators\RequestValidators\ClientRegistrationRequestValidator
+ * @return \Oauth\Services\Validators\CustomValidators\ClientRegistrationValidator
  */
-$container['RegistrationRequestValidator'] = function () {
-    return new \Oauth\Services\Validators\RequestValidators\ClientRegistrationRequestValidator();
+$container['ClientRegisterValidator'] = function () {
+    return new \Oauth\Services\Validators\CustomValidators\ClientRegistrationValidator();
+};
+
+$container['ClientUnregisterValidator'] = function () {
+    $validator = new \Oauth\Services\Validators\Validator();
+    return $validator
+            ->add('clientId', new \Oauth\Services\Validators\Parameters\ClientIdentificationRule(true));
 };
 
 /**
- * Random factory
  * @return \RandomLib\Generator
  */
 $container['RandomFactory'] = function () {
@@ -116,7 +119,6 @@ $container['RandomFactory'] = function () {
 };
 
 /**
- * Algorithm manager factory
  * @return \Jose\Component\Core\AlgorithmManagerFactory
  */
 $container['AlgorithmManagerFactory'] = function () {
@@ -143,7 +145,6 @@ $container['AlgorithmManagerFactory'] = function () {
 };
 
 /**
- * Compression method manager
  * @return \Jose\Component\Encryption\Compression\CompressionMethodManager
  */
 $container['compressionMethodManager'] = function () {
@@ -153,7 +154,6 @@ $container['compressionMethodManager'] = function () {
 };
 
 /**
- * PSR-3 Logger
  * @return \Monolog\Logger
  */
 $container['debugLogger'] = function () {
@@ -164,7 +164,6 @@ $container['debugLogger'] = function () {
 };
 
 /**
- * PDO
  * @return PDO
  */
 $container['pdo'] = function () {

@@ -8,20 +8,19 @@
 
 namespace Oauth\Services\Validators;
 
-use Oauth\Services\Validators\RequestValidators\RequestValidator;
 use Psr\Http\Message\ServerRequestInterface;
 
 interface ValidatorManagerInterface
 {
     /**
      * @param string $validatorAlias
-     * @param RequestValidator $validators
+     * @param Validator $validators
      * @return ValidatorManagerInterface
      */
-    public function add(string $validatorAlias, RequestValidator $validators) : ValidatorManagerInterface;
+    public function add(string $validatorAlias, Validator $validators) : ValidatorManagerInterface;
 
     /**
-     * Validate the request for all RequestValidator
+     * Validate the request for all Validator
      * @param string[] $validatorsAlias
      * @param ServerRequestInterface $request
      * @return bool

@@ -8,7 +8,6 @@
 
 namespace Oauth\Controllers;
 
-use Jose\Component\Core\JWK;
 use Oauth\Services\Helpers\JoseHelperInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -31,7 +30,7 @@ final class ConnexionController
     public function __invoke(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface
     {
         $payload = [
-            'exp' => time() + 1000,
+            'exp' => time() + 20,
             'jti' => '0123456789'
         ];
 

@@ -6,15 +6,16 @@
  * Time: 5:18 PM
  */
 
-namespace Oauth\Services\Validators\RequestValidators;
+namespace Oauth\Services\Validators\CustomValidators;
 
 use Oauth\Services\Validators\Parameters\ClientNameRule;
 use Oauth\Services\Validators\Parameters\ClientTypeRule;
 use Oauth\services\Validators\Parameters\GrantTypeRule;
 use Oauth\Services\Validators\Parameters\RedirectUriRule;
 use Oauth\Services\Validators\Parameters\ScopeRule;
+use Oauth\Services\Validators\Validator;
 
-class ClientRegistrationRequestValidator extends RequestValidator
+class ClientRegistrationValidator extends Validator
 {
     public function __construct()
     {
@@ -25,5 +26,6 @@ class ClientRegistrationRequestValidator extends RequestValidator
             'redirect_uri' => new RedirectUriRule(),
             'scope' => new ScopeRule()
         ];
+        parent::__construct();
     }
 }
