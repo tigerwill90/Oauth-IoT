@@ -12,7 +12,7 @@ Rename .env.example file to .env in racine folder
 ````
 make install
 ````
-Server will start automatically
+Server will start automatically !
 
 #### Windows
 Incoming...
