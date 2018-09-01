@@ -11,13 +11,41 @@ namespace Oauth\Services\Clients;
 interface ClientInterface extends \JsonSerializable
 {
 
-    public function setClientId(string $clientId) : ClientInterface;
+    public function getId() : int;
 
-    public function getClientId() : string ;
+    /**
+     * @param string $clientIdentification
+     * @return ClientInterface
+     */
+    public function setClientIdentification(string $clientIdentification) : ClientInterface;
 
+    /**
+     * @return string
+     */
+    public function getClientSecret() : string;
+
+    /**
+     * @return string
+     */
+    public function getClientIdentification() : string ;
+
+    /**
+     * @param string $registrationDate
+     * @return ClientInterface
+     */
     public function setClientSecret(string $registrationDate) : ClientInterface;
 
+    /**
+     * @param \DateTime $date
+     * @return ClientInterface
+     */
     public function setRegistrationDate(\DateTime $date) : ClientInterface;
+
+    public function getRegistrationDate() : string;
+
+    public function getRedirectUri() : array;
+
+    public function setRedirectUri(array $redirectUri) : ClientInterface;
 
     public function setScope(array $scope) : ClientInterface;
 

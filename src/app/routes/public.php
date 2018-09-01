@@ -17,6 +17,7 @@
     $app->group('/clients', function() {
         $this->post('', \Oauth\Controllers\CreateClientController::class);
         $this->delete('/{clientId}', \Oauth\Controllers\DeleteClientController::class);
+        $this->map(['PUT', 'PATCH'],'/{clientId}', \Oauth\Controllers\UpdateClientController::class);
     });
 
     /**

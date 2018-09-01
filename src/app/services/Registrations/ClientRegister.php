@@ -10,6 +10,7 @@ namespace Oauth\Services\Registrations;
 
 use Oauth\Services\Clients\ClientInterface;
 use Oauth\Services\Exceptions\Storage\ClientIdException;
+use Oauth\Services\Exceptions\Storage\ClientSecretException;
 use Oauth\Services\Exceptions\Storage\StorageException;
 use Oauth\Services\Exceptions\Storage\UniqueException;
 use Oauth\Services\Exceptions\ValidatorException;
@@ -57,7 +58,7 @@ class ClientRegister
         $attemptsNumber = 0;
         $exception = true;
         while ($exception) {
-            $client->setClientId($this->generator->generateString(8, self::CLIENT_IDENTIFIER_CHAR));
+            $client->setClientIdentification($this->generator->generateString(8, self::CLIENT_IDENTIFIER_CHAR));
             try {
                 $this->storage->create($client);
                 $exception = false;
@@ -81,10 +82,89 @@ class ClientRegister
      * @param string $clientId
      * @return ClientRegister
      */
-    public function unRegister(string $clientId) : self
+    public function unregister(string $clientId) : self
     {
         try {
             $this->storage->delete($clientId);
+        } catch (StorageException $e) {
+            throw $e;
+        }
+        return $this;
+    }
+
+    /**
+     * @param string $clientId
+     * @return ClientInterface
+     * @throws ValidatorException
+     */
+    public function updateIdentification(string $clientId) : ClientInterface
+    {
+        $attemptsNumber = 0;
+        $client = null;
+        while (true) {
+            $newClientId = $this->generator->generateString(8, self::CLIENT_IDENTIFIER_CHAR);
+            try {
+               $client = $this->storage->updateIdentification($clientId, $newClientId);
+               $client->setClientIdentification($newClientId);
+               break;
+            } catch (ClientIdException $e) {
+                $attemptsNumber++;
+                $this->log('ClientIdException', ['context' => 'ClientRegister','code' => $e->getCode(), 'message' => $e->getMessage()]);
+                if ($attemptsNumber >= self::COOL_DOWN) {
+                    throw new ValidatorException($e->getMessage(), $e->getCode());
+                }
+            } catch (StorageException $e) {
+                throw $e;
+            }
+        }
+        if (null === $client) {
+            throw new \InvalidArgumentException('The ClientInterface instance is null');
+        }
+        return $client;
+    }
+
+    /**
+     * @param string $clientId
+     * @return ClientInterface
+     * @throws ValidatorException
+     */
+    public function updateSecret(string $clientId) : ClientInterface
+    {
+        $attemptsNumber = 0;
+        $client = null;
+        while (true) {
+            $newClientSecret = $this->generator->generateString(16, self::PASSWORD_CHAR);
+            try {
+                $client = $this->storage->updateSecret($clientId, $newClientSecret);
+                $client->setClientSecret($newClientSecret);
+                break;
+            } catch (ClientSecretException $e) {
+                $attemptsNumber++;
+                $this->log('ClientSecretException', ['context' => 'ClientRegister','code' => $e->getCode(), 'message' => $e->getMessage()]);
+                if ($attemptsNumber >= self::COOL_DOWN) {
+                    throw new ValidatorException($e->getMessage(), $e->getCode());
+                }
+            } catch (StorageException $e) {
+                throw $e;
+            }
+        }
+        if (null === $client) {
+            throw new \InvalidArgumentException('The ClientInterface instance is null');
+        }
+        return $client;
+    }
+
+    /**
+     * @param ClientInterface $client
+     * @return ClientRegister
+     * @throws ValidatorException
+     */
+    public function update(ClientInterface $client) : self
+    {
+        try {
+            $this->storage->update($client);
+        } catch (UniqueException $e) {
+            throw new ValidatorException($e->getMessage());
         } catch (StorageException $e) {
             throw $e;
         }

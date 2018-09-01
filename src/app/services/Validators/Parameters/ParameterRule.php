@@ -39,4 +39,12 @@ abstract class ParameterRule
      * @return Validator
      */
     abstract public function getValidator(): Validator;
+
+    /**
+     * Get custom validator errors
+     * @return array
+     */
+    public function getCustomMessages() : array {
+        return [];
+    }
 }

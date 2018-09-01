@@ -8,7 +8,7 @@
 
 namespace Oauth\Controllers;
 
-use Oauth\Services\Exceptions\Storage\StorageException;
+use Oauth\Services\Exceptions\Storage\NoEntityException;
 use Oauth\Services\Registrations\ClientRegister;
 use Oauth\Services\Validators\ValidatorManagerInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -44,8 +44,8 @@ final class DeleteClientController
     {
         if ($this->requestValidatorManager->validate(['unregister'], $request)) {
             try {
-                $this->clientRegister->unRegister($request->getAttribute('clientId'));
-            } catch (StorageException $e) {
+                $this->clientRegister->unregister($request->getAttribute('clientId'));
+            } catch (NoEntityException $e) {
                 throw new NotFoundException($request, $response);
             }
             return $response->withStatus(204);

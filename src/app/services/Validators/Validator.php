@@ -77,7 +77,17 @@ class Validator
                         $paramValidator->getValidator()->setName($key)->assert($attribute);
                     }
                 } catch (NestedValidationException $e) {
-                    $this->validatorParameterErrors[$key] = $e->getMessages();
+                    if (empty($paramValidator->getCustomMessages())) {
+                        $this->validatorParameterErrors[$key] = $e->getMessages();
+                    } else {
+                        $errors = [];
+                        foreach (array_values($e->findMessages($paramValidator->getCustomMessages())) as $error) {
+                            if ('' !== $error) {
+                                $errors[] = $error;
+                            }
+                        }
+                        $this->validatorParameterErrors[$key] = $errors;
+                    }
                 }
             } else {
                 throw new \InvalidArgumentException('Key : ' . $key . ' => ' . $paramValidator . ' must be an instance of ParameterRule');

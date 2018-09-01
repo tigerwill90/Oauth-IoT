@@ -18,6 +18,18 @@ class ScopeRule extends ParameterRule
      */
     public function getValidator(): Validator
     {
-        return Validator::arrayType()->each(Validator::alpha('_')->noWhitespace()->length(3, 30))->notEmpty();
+        return Validator::arrayType()->each(Validator::alpha(':')->contains(':')->noWhitespace()->length(3, 30))->notEmpty();
+    }
+
+    public function getCustomMessages(): array
+    {
+        return [
+            'arrayType' => '{{name}} : must be a valid array',
+            'alpha' => '{{name}} : only letter and {{additionalChars}} are allowed',
+            'contains' => '{{name}} : format right:service is expected',
+            'noWhitespace' => '{{name}} : must not contains any whitespace',
+            'length' => '{{name}} : must be between {{minValue}} and {{maxValue}}',
+            'notEmpty' => '{{name}} : must not be empty'
+        ];
     }
 }

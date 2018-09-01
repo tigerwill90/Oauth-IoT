@@ -29,7 +29,11 @@ $container[\Oauth\Controllers\CreateClientController::class] = function (Contain
 };
 
 $container[\Oauth\Controllers\DeleteClientController::class] = function (ContainerInterface $c) {
-  return new \Oauth\Controllers\DeleteClientController($c->get('ValidatorManager'), $c->get('ClientRegister'));
+    return new \Oauth\Controllers\DeleteClientController($c->get('ValidatorManager'), $c->get('ClientRegister'));
+};
+
+$container[\Oauth\Controllers\UpdateClientController::class] = function (ContainerInterface $c) {
+    return new \Oauth\Controllers\UpdateClientController($c->get('ValidatorManager'), $c->get('ClientRegister'), $c->get('debugLogger'));
 };
 
 /**
@@ -83,7 +87,7 @@ $container['ClientRegister'] = function (ContainerInterface $c) {
  * @return \Oauth\Services\Storage\PDOClientStorage
  */
 $container['PdoClientStorage'] = function (ContainerInterface $c) {
-    return new \Oauth\Services\Storage\PDOClientStorage($c->get('pdo'));
+    return new \Oauth\Services\Storage\PDOClientStorage($c->get('pdo'), $c->get('debugLogger'));
 };
 
 /**
@@ -158,7 +162,14 @@ $container['compressionMethodManager'] = function () {
  */
 $container['debugLogger'] = function () {
   $log = new \Monolog\Logger('oauth_debug');
+  $formatter = new \Monolog\Formatter\LineFormatter(
+      "[%datetime%] [%level_name%]: %message% %context%\n",
+      null,
+      true,
+      true
+  );
   $stream = new \Monolog\Handler\StreamHandler(__DIR__ . '/../../logs/oauth.log', \Monolog\Logger::DEBUG);
+  $stream->setFormatter($formatter);
   $log->pushHandler($stream);
   return $log;
 };

@@ -16,7 +16,7 @@ class Client implements ClientInterface
     private $id;
 
     /** @var int */
-    private $clientId;
+    private $clientIdentification;
 
     /** @var string */
     private $clientSecret;
@@ -34,7 +34,7 @@ class Client implements ClientInterface
     private $redirectUri;
 
     /** @var  array */
-    private $scope;
+    private $scopes;
 
     /** @var DateTime */
     private $registrationDate;
@@ -48,20 +48,24 @@ class Client implements ClientInterface
         if (!empty($client['id'])) {
             $this->id = (int)$client['id'];
         }
-        if (!empty($client['client_id'])) {
-            $this->clientId = $client['client_id'];
+        if (!empty($client['client_identification'])) {
+            $this->clientIdentification = $client['client_identification'];
         }
         if (!empty($client['client_secret'])) {
             $this->clientSecret = $client['client_secret'];
         }
         if (!empty($client['registration_date'])) {
-            $this->registrationDate = $client['registration_date'];
+            $this->registrationDate = new DateTime($client['registration_date']);
         }
         $this->clientName = $client['client_name'];
         $this->grantType = $client['grant_type'];
         $this->clientType = $client['client_type'];
-        $this->redirectUri = $client['redirect_uri'];
-        $this->scope = $client['scope'];
+        if (!empty($client['redirect_uri'])) {
+            $this->redirectUri = $client['redirect_uri'];
+        }
+        if (!empty( $client['scope'])) {
+            $this->scopes = $client['scope'];
+        }
     }
 
     /**
@@ -85,18 +89,18 @@ class Client implements ClientInterface
     /**
      * @return string
      */
-    public function getClientId() : string
+    public function getClientIdentification() : string
     {
-        return $this->clientId;
+        return $this->clientIdentification;
     }
 
     /**
-     * @param string $clientId
+     * @param string $clientIdentification
      * @return Client
      */
-    public function setClientId(string $clientId) : ClientInterface
+    public function setClientIdentification(string $clientIdentification) : ClientInterface
     {
-        $this->clientId = $clientId;
+        $this->clientIdentification = $clientIdentification;
         return $this;
     }
 
@@ -166,7 +170,7 @@ class Client implements ClientInterface
      * @param array $redirectUri
      * @return Client
      */
-    public function setRedirectUri(array $redirectUri) : self
+    public function setRedirectUri(array $redirectUri) : ClientInterface
     {
         $this->redirectUri = $redirectUri;
         return $this;
@@ -177,16 +181,16 @@ class Client implements ClientInterface
      */
     public function getScope() : array
     {
-        return $this->scope;
+        return $this->scopes;
     }
 
     /**
-     * @param array $scope
+     * @param array $scopes
      * @return Client
      */
-    public function setScope(array $scope) : ClientInterface
+    public function setScope(array $scopes) : ClientInterface
     {
-        $this->scope = $scope;
+        $this->scopes = $scopes;
         return $this;
     }
 
@@ -226,7 +230,6 @@ class Client implements ClientInterface
         return $this;
     }
 
-
     /**
      * Return an array with registration response details
      * @return array
@@ -234,13 +237,13 @@ class Client implements ClientInterface
     public function getRegistrationInformation() : array
     {
         return [
-            'client_id' => $this->clientId,
+            'client_id' => $this->clientIdentification,
             'client_secret' => $this->clientSecret,
             'client_name' => $this->clientName,
             'client_type' => $this->clientType,
             'grant_type' => $this->grantType,
             'registration_date' => $this->getRegistrationDate(),
-            'scope' => $this->scope,
+            'scope' => $this->scopes,
             'redirect_url' => $this->redirectUri
         ];
     }
@@ -255,7 +258,7 @@ class Client implements ClientInterface
     public function jsonSerialize()
     {
         return [
-            'client_id' => $this->clientId,
+            'client_id' => $this->clientIdentification,
             'client_secret' => $this->clientSecret,
             'client_name' => $this->clientName,
             'client_type' => $this->clientType,
