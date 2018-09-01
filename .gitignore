@@ -2,7 +2,6 @@
 /src/vendor/
 *.log
 .env
-*.mwb
 *.mwb.bak
 composer.lock
 .idea/
