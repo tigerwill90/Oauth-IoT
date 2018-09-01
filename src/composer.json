@@ -2,6 +2,9 @@
   "name": "Oauth2.0 server",
   "description": "Slim 3 skeleton - authentication - authorization",
   "type": "project",
+  "config": {
+    "optimize-autoloader": true
+  },
   "keywords": [
       "slim",
       "api",
