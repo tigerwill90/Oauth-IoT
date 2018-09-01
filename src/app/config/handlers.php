@@ -52,7 +52,7 @@ $container['notAllowedHandler'] = function (ContainerInterface $c) {
 $container['notFoundHandler'] = function (ContainerInterface $c) {
   return function (ServerRequestInterface $request, ResponseInterface $response) use ($c) {
       $body = $response->getBody();
-      $body->write(json_encode(['error' => 'route not found']));
+      $body->write(json_encode(['error' => 'resource not found']));
 
       $newResponse = $response
           ->withStatus(404)

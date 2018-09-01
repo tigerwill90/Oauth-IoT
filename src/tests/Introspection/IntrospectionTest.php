@@ -163,7 +163,7 @@ class IntrospectionTest extends TestCase
             ->setActiveResponseParameter([Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], 'John Doe', 10, ['key' => '/super/secret/'])
             ->introspectToken($request, self::KEY, 'oct');
 
-        $this->assertFalse($isValid);
+        $this->assertTrue($isValid);
         $arrayResponse = json_decode($introspection->getJsonResponse(), true);
         $this->assertArrayHasKey(Introspection::RESP_ACTIVE, $arrayResponse);
         $this->assertFalse($arrayResponse[Introspection::RESP_ACTIVE]);
