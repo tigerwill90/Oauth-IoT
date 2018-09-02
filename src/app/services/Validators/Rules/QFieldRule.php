@@ -2,15 +2,16 @@
 /**
  * Created by PhpStorm.
  * User: Sylvain
- * Date: 31.08.2018
- * Time: 18:39
+ * Date: 02.09.2018
+ * Time: 22:31
  */
 
-namespace Oauth\Services\Validators\Parameters;
+namespace Oauth\Services\Validators\Rules;
+
 
 use Respect\Validation\Validator;
 
-class ClientIdentificationRule extends ParameterRule
+class QFieldRule extends RuleValidator
 {
 
     /**
@@ -19,6 +20,6 @@ class ClientIdentificationRule extends ParameterRule
      */
     public function getValidator(): Validator
     {
-        return Validator::alnum()->notBlank()->length(1, 15);
+        return Validator::create()->alpha('_')->in(['client_secret','client_identification']);
     }
 }

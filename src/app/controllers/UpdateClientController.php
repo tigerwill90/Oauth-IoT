@@ -65,7 +65,7 @@ final class UpdateClientController
             return $response->withBody($body)->withHeader('content-type', 'application/json')->withStatus(400);
         }
         // PATCH secret or identification update
-        if (!$this->requestValidatorManager->validate(['unregister'], $request)) {
+        if (!$this->requestValidatorManager->validate(['update'], $request)) {
             $body->write(json_encode($this->requestValidatorManager->getErrorsMessages()));
             return $response->withBody($body)->withHeader('content-type', 'application/json')->withStatus(400);
         }

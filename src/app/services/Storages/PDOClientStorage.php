@@ -149,7 +149,6 @@ class PDOClientStorage implements ClientStorageInterface
     private function writeRedirectUrl(int $id, array $urls) : void
     {
         $sql = 'INSERT INTO redirect_uri (red_url, red_cli_id) VALUES (:url, :fkId)';
-
         try {
             $stmt = $this->pdo->prepare($sql);
             foreach ($urls as $url) {
@@ -158,6 +157,9 @@ class PDOClientStorage implements ClientStorageInterface
                 $stmt->execute();
             }
         } catch (\PDOException $e) {
+            if ((int)$e->getCode() === self::SQLSTATE_23000) {
+                throw new UniqueException('This url already exist', $e->getCode());
+            }
             throw $e;
         }
 
@@ -268,7 +270,7 @@ class PDOClientStorage implements ClientStorageInterface
             $stmt->execute();
             $this->pdo->commit();
         } catch (\PDOException $e) {
-            if ((int)$e->getCode() === self::SQLSTATE_23000) {
+            if ((int)$e->getCode() === self::SQLSTATE_23000 && strpos($e->getMessage(), $client->getClientName()) !== false) {
                 $this->pdo->rollBack();
                 throw new UniqueException('This client name already exist', $e->getCode());
             }

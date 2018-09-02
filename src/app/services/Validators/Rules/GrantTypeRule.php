@@ -3,14 +3,14 @@
  * Created by PhpStorm.
  * User: thor
  * Date: 8/30/18
- * Time: 5:03 PM
+ * Time: 3:37 PM
  */
 
-namespace Oauth\Services\Validators\Parameters;
+namespace Oauth\services\Validators\Rules;
 
 use Respect\Validation\Validator;
 
-class RedirectUriRule extends ParameterRule
+class GrantTypeRule extends RuleValidator
 {
     /**
      * Get a validator instance
@@ -18,6 +18,6 @@ class RedirectUriRule extends ParameterRule
      */
     public function getValidator(): Validator
     {
-        return Validator::arrayType()->each(Validator::url()->length(7, 4000))->notEmpty();
+        return Validator::in(['code', 'implicit'])->notBlank();
     }
 }

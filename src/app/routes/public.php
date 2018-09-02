@@ -26,7 +26,7 @@
      */
     $app->post('/keys', function(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface {
 
-      // HTTP Authentication
+      // HTTP AuthenticationManager
       $headers = $request->getHeader('HTTP_AUTHORIZATION');
       error_log('headers : ' . print_r($request->getHeaders(), true));
       if (isset($headers[0])) {

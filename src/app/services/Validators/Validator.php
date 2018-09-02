@@ -8,96 +8,32 @@
 
 namespace Oauth\Services\Validators;
 
-use Oauth\Services\Validators\Parameters\ParameterRule;
+use Oauth\Services\Validators\Rules\RuleValidator;
 use Psr\Http\Message\ServerRequestInterface;
 use Respect\Validation\Exceptions\NestedValidationException;
 
-class Validator
+abstract class Validator
 {
-    /**
-     * <code>
-     * $parametersValidator = [
-     *      'client_id' => new ClientNameRule(true),
-     *      'parameter' => ParameterRule
-     * ]
-     * @var array[string]ParameterRule
-     */
-    protected $parametersValidator;
+    /** @var string[] */
+    protected $requiredErrors = [];
 
     /** @var string[] */
-    protected $missingParameterErrors = [];
-
-    /** @var string[] */
-    protected $validatorParameterErrors = [];
-
-    public function __construct(){}
+    protected $validatorErrors = [];
 
     /**
-     * Add a new ParameterRule
+     * Add a new RuleValidator
      * @param string $field
-     * @param ParameterRule $parameterRule
+     * @param RuleValidator $parameterRule
      * @return Validator
      */
-    public function add(string $field, ParameterRule $parameterRule) : Validator
-    {
-        $this->parametersValidator[$field] = $parameterRule;
-        return $this;
-    }
+    abstract public function add(string $field, RuleValidator $parameterRule) : Validator;
 
-    public function checkParametersExist(ServerRequestInterface $request): bool
-    {
-        $args = $request->getParsedBody() ?? [];
-        $parameters = [];
-        foreach ($this->parametersValidator as $key => $paramValidator) {
-            $attribute = $request->getAttribute($key);
-            if ($paramValidator instanceof ParameterRule) {
-                if (!array_key_exists($key, $args) && null === $attribute && $paramValidator->isRequired()) {
-                    $parameters[] = $key . ' parameter is required';
-                }
-            } else {
-                throw new \InvalidArgumentException('Value of ' . $key . ' must be a child instance of ParameterRule');
-            }
-        }
-        if (!empty($parameters)) {
-            $this->missingParameterErrors['parameters'] = $parameters;
-        }
-        return empty($this->missingParameterErrors);
-    }
+    abstract public function checkExist(ServerRequestInterface $request): bool;
 
-    public function validateParameters(ServerRequestInterface $request): bool
-    {
-        $args = $request->getParsedBody() ?? [];
-        foreach ($this->parametersValidator as $key => $paramValidator) {
-            $attribute = $request->getAttribute($key);
-            if ($paramValidator instanceof ParameterRule) {
-                try {
-                    if (array_key_exists($key, $args)) {
-                        $paramValidator->getValidator()->setName($key)->assert($args[$key]);
-                    } else if (null !== $attribute) {
-                        $paramValidator->getValidator()->setName($key)->assert($attribute);
-                    }
-                } catch (NestedValidationException $e) {
-                    if (empty($paramValidator->getCustomMessages())) {
-                        $this->validatorParameterErrors[$key] = $e->getMessages();
-                    } else {
-                        $errors = [];
-                        foreach (array_values($e->findMessages($paramValidator->getCustomMessages())) as $error) {
-                            if ('' !== $error) {
-                                $errors[] = $error;
-                            }
-                        }
-                        $this->validatorParameterErrors[$key] = $errors;
-                    }
-                }
-            } else {
-                throw new \InvalidArgumentException('Key : ' . $key . ' => ' . $paramValidator . ' must be an instance of ParameterRule');
-            }
-        }
-        return empty($this->validatorParameterError);
-    }
+    abstract public function validate(ServerRequestInterface $request): bool;
 
     public function getErrorsMessages() : array
     {
-        return array_merge($this->missingParameterErrors, $this->validatorParameterErrors);
+        return array_merge($this->requiredErrors, $this->validatorErrors);
     }
 }

@@ -8,6 +8,7 @@
 
 namespace Oauth\Services;
 
+use Jose\Component\Core\JWKSet;
 use Oauth\Services\Helpers\AlgorithmManagerHelperInterface;
 use Oauth\Services\Helpers\JoseHelperInterface;
 use Psr\Log\LoggerInterface;
@@ -64,7 +65,7 @@ class Introspection implements IntrospectionInterface
     /** @var ClaimsCheckerInterface  */
     private $claimsChecker;
 
-    /** @var ClaimCheckerManager */
+    /** @var ClaimsCheckerManager */
     private $claimsCheckerManager;
 
     /** @var int */
@@ -77,10 +78,10 @@ class Introspection implements IntrospectionInterface
      * Introspection constructor.
      * @param JoseHelperInterface $joseHelper
      * @param AlgorithmManagerHelperInterface $algorithmHelper
-     * @param ClaimCheckerManager $claimCheckerManager
+     * @param ClaimsCheckerManager $claimCheckerManager
      * @param LoggerInterface|null $logger
      */
-    public function __construct(JoseHelperInterface $joseHelper, AlgorithmManagerHelperInterface $algorithmHelper, ClaimCheckerManager $claimCheckerManager, LoggerInterface $logger = null)
+    public function __construct(JoseHelperInterface $joseHelper, AlgorithmManagerHelperInterface $algorithmHelper, ClaimsCheckerManager $claimCheckerManager, LoggerInterface $logger = null)
     {
         $this->joseHelper = $joseHelper;
         $this->algorithmHelper = $algorithmHelper;
@@ -106,7 +107,7 @@ class Introspection implements IntrospectionInterface
      * @param array $claims
      * @return IntrospectionInterface
      */
-    public function setClaimsToVerify(array $claims = [self::CLAIM_ISS, self::CLAIM_EXP, self::CLAIM_JTI]) : IntrospectionInterface
+    public function setMandatoryClaims(array $claims = [self::CLAIM_ISS, self::CLAIM_EXP, self::CLAIM_JTI]) : IntrospectionInterface
     {
         // take only standardized claims
         $this->claimsToCheck = array_intersect(
@@ -217,11 +218,11 @@ class Introspection implements IntrospectionInterface
      * Process a token introspection
      *
      * @param \Psr\Http\Message\ServerRequestInterface $request
-     * @param string $secretKey
-     * @param string $keyType
+     * @param JWKSet $jwkSet
+     * @param bool $onlyMandatoryClaims
      * @return bool
      */
-    public function introspectToken(\Psr\Http\Message\ServerRequestInterface $request, string $secretKey, string $keyType) : bool
+    public function introspectToken(\Psr\Http\Message\ServerRequestInterface $request, JWKSet $jwkSet, bool $onlyMandatoryClaims = false) : bool
     {
         self::$time = time();
 
@@ -254,12 +255,21 @@ class Introspection implements IntrospectionInterface
 
         $this->alg = strtoupper($args[$this->tokenTypeHint]);
 
-        // Retrieve headers parameters, catch an invalid token
+        /**
+         * THE REQUEST IS VALID,
+         * Retrieve headers parameters, catch an invalid token
+         */
         try {
             $headers = $this->joseHelper
                 ->setToken($args[$this->token])
                 ->getHeaders();
         } catch (\Exception $e) {
+            $this->setStandardResponse(false);
+            return true;
+        }
+
+        // Check mandatory header kid parameter
+        if (!array_key_exists('kid', $headers)) {
             $this->setStandardResponse(false);
             return true;
         }
@@ -316,9 +326,7 @@ class Introspection implements IntrospectionInterface
         // Check the authenticity of the token, catch an invalid token
         try {
             $isVerified = $this->joseHelper
-                ->setJwkKey($secretKey, $keyType)
-                ->setAlgorithm($this->alg, $headers['enc'])
-                ->setType($headers['typ'])
+                ->setJwk($jwkSet->get($headers['kid']))
                 ->verifyToken();
         } catch (\Exception $e) {
             $this->setStandardResponse(false);
@@ -337,10 +345,32 @@ class Introspection implements IntrospectionInterface
             $active = true;
             // Check if  all mandatory claims are present
             if (\count($this->claimsToCheck) === \count(array_intersect($this->claimsToCheck, array_keys($claims)))) {
-                // For each mandatory claims, check validity
-                foreach ($this->claimsToCheck as $claimToCheck) {
-                    if (!$this->{'check' . ucfirst($claimToCheck)}($claims[$claimToCheck])) {
-                        error_log($claimToCheck);
+                /**
+                 * Check the validity of each mandatory claims
+                 * Sometimes, you want check only mandatory claims
+                 * but sometimes you want check all present claims
+                 */
+                if ($onlyMandatoryClaims) {
+                    $claimsToCheck = $this->claimsToCheck;
+                } else {
+                    $claimsToCheck = [
+                        self::CLAIM_EXP,
+                        self::CLAIM_IAT,
+                        self::CLAIM_NBF,
+                        self::CLAIM_SUB,
+                        self::CLAIM_AUD,
+                        self::CLAIM_ISS,
+                        self::CLAIM_JTI,
+                        self::CLAIM_SCOPE
+                    ];
+                }
+                foreach ($claimsToCheck as $claimToCheck) {
+                    try {
+                        if (array_key_exists($claimToCheck, $claims) && !$this->{'check' . ucfirst($claimToCheck)}($claims)) {
+                            $active = false;
+                            $this->invalidClaims[$claimToCheck] = $claims[$claimToCheck];
+                        }
+                    } catch (\InvalidArgumentException $e) {
                         $active = false;
                         $this->invalidClaims[$claimToCheck] = $claims[$claimToCheck];
                     }
@@ -438,7 +468,7 @@ class Introspection implements IntrospectionInterface
      * which is a value of any type other than a resource.
      * @since 5.4.0
      */
-    public function jsonSerialize()
+    public function jsonSerialize() : array
     {
         return $this->response;
     }
@@ -456,81 +486,95 @@ class Introspection implements IntrospectionInterface
     /**
      * Return false if token has expired
      *
-     * @param int $exp
+     * @param array $claims
      * @return bool
      */
-    private function checkExp(int $exp) : bool
+    private function checkExp(array $claims) : bool
     {
-        return self::$time < $exp;
+        if (!is_numeric($claims['exp'])) {
+            throw new \InvalidArgumentException('exp must be a numeric claim');
+        }
+        return self::$time < (int)$claims['exp'];
     }
 
     /**
      * Return false if issued time is before now (should use nbf instead)
      *
-     * @param int $iat
+     * @param array $claims
      * @return bool
      */
-    private function checkIat(int $iat) : bool
+    private function checkIat(array $claims) : bool
     {
-        return self::$time >= $iat;
+        if (!is_numeric($claims['iat'])) {
+            throw new \InvalidArgumentException('iat must be a numeric claim');
+        }
+        return self::$time >= (int)$claims['iat'];
     }
 
     /**
      * Return false if token is not valid now
      *
-     * @param int $nbf
+     * @param array $claims
      * @return bool
      */
-    private function checkNbf(int $nbf) : bool
+    private function checkNbf(array $claims) : bool
     {
-        return self::$time >= $nbf;
+        if (!is_numeric($claims['nbf'])) {
+            throw new \InvalidArgumentException('nbf must be a numeric claim');
+        }
+        return self::$time >= (int)$claims['nbf'];
     }
 
     /**
-     * @param string $sub
+     * @param array $claims
      * @return bool
      */
-    private function checkSub(string $sub) : bool
+    private function checkSub(array $claims) : bool
     {
-        return $this->claimsChecker->verifySub($sub);
+        return $this->claimsChecker->verifySub($claims);
     }
 
     /**
-     * @param string $aud
+     * @param array $claims
      * @return bool
      */
-    private function checkAud(string $aud) : bool
+    private function checkAud(array $claims) : bool
     {
-        return $this->claimsChecker->verifyAud($aud);
+        return $this->claimsChecker->verifyAud($claims);
     }
 
     /**
-     * @param string $iss
+     * @param array $claims
      * @return bool
      */
-    private function checkIss(string $iss) : bool
+    private function checkIss(array $claims) : bool
     {
-        return $this->claimsChecker->verifyIss($iss);
+        return $this->claimsChecker->verifyIss($claims);
     }
 
     /**
-     * @param string $jti
+     * @param array $claims
      * @return bool
      */
-    private function checkJti(string $jti) : bool
+    private function checkJti(array $claims) : bool
     {
-        return $this->claimsChecker->verifyJti($jti);
+        return $this->claimsChecker->verifyJti($claims);
     }
 
     /**
-     * @param string $scope
+     * @param array $claims
      * @return bool
      */
-    private function checkScope(string $scope) : bool
+    private function checkScope(array $claims) : bool
     {
-        return $this->claimsChecker->verifyScope($scope);
+        return $this->claimsChecker->verifyScope($claims);
     }
 
+    /**
+     * @param string $message
+     * @param array $context
+     * @return Introspection
+     */
     private function log(string $message, array $context = []) : self
     {
         if (null !== $this->logger) {

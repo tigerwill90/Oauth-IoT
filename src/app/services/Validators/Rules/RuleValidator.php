@@ -6,16 +6,16 @@
  * Time: 1:02 AM
  */
 
-namespace Oauth\Services\Validators\Parameters;
+namespace Oauth\Services\Validators\Rules;
 
 use Respect\Validation\Validator;
 
 /**
  * Responsibility : now his validators rules
- * Class ParameterRule
+ * Class RuleValidator
  * @package Oauth\Services\Validator\Parameters
  */
-abstract class ParameterRule
+abstract class RuleValidator
 {
     /** @var bool */
     protected $required;

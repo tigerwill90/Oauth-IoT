@@ -3,14 +3,14 @@
  * Created by PhpStorm.
  * User: thor
  * Date: 8/30/18
- * Time: 5:12 PM
+ * Time: 5:03 PM
  */
 
-namespace Oauth\Services\Validators\Parameters;
+namespace Oauth\Services\Validators\Rules;
 
 use Respect\Validation\Validator;
 
-class DateRule extends ParameterRule
+class RedirectUriRule extends RuleValidator
 {
     /**
      * Get a validator instance
@@ -18,6 +18,6 @@ class DateRule extends ParameterRule
      */
     public function getValidator(): Validator
     {
-        return Validator::date();
+        return Validator::arrayType()->each(Validator::url()->length(7, 4000))->notEmpty();
     }
 }

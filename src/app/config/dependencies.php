@@ -28,10 +28,18 @@ $container[\Oauth\Controllers\CreateClientController::class] = function (Contain
     return new \Oauth\Controllers\CreateClientController($c->get('ValidatorManager'), $c->get('ClientRegister'));
 };
 
+/**
+ * @param ContainerInterface $c
+ * @return \Oauth\Controllers\DeleteClientController
+ */
 $container[\Oauth\Controllers\DeleteClientController::class] = function (ContainerInterface $c) {
     return new \Oauth\Controllers\DeleteClientController($c->get('ValidatorManager'), $c->get('ClientRegister'));
 };
 
+/**
+ * @param ContainerInterface $c
+ * @return \Oauth\Controllers\UpdateClientController
+ */
 $container[\Oauth\Controllers\UpdateClientController::class] = function (ContainerInterface $c) {
     return new \Oauth\Controllers\UpdateClientController($c->get('ValidatorManager'), $c->get('ClientRegister'), $c->get('debugLogger'));
 };
@@ -45,18 +53,11 @@ $container['IntrospectionService'] = function (ContainerInterface $c) {
 };
 
 /**
- * @return \Oauth\Services\ClaimCheckerManager
+ * @return \Oauth\Services\ClaimsCheckerManager
  */
-$container['ClaimsCheckerManager'] = function () {
-    $claimsCheckerManager = new \Oauth\Services\ClaimCheckerManager();
-    return $claimsCheckerManager->add('standard', new \Oauth\Services\ClaimsCheckerRules());
-};
-
-/**
- * @return \Oauth\Services\Authentication
- */
-$container['AuthenticationService'] = function () {
-    return new \Oauth\Services\Authentication();
+$container['ClaimsCheckerManager'] = function (ContainerInterface $c) {
+    $claimsCheckerManager = new \Oauth\Services\ClaimsCheckerManager();
+    return $claimsCheckerManager->add('standard', new \Oauth\Services\ClaimsCheckerRules($c->get('memcached')));
 };
 
 /**
@@ -64,7 +65,7 @@ $container['AuthenticationService'] = function () {
  * @return \Oauth\Services\Helpers\JoseHelper
  */
 $container['JoseHelper'] = function (ContainerInterface $c) {
-    return new \Oauth\Services\Helpers\JoseHelper($c->get('AlgorithmManagerFactory'), $c->get('compressionMethodManager'));
+    return new \Oauth\Services\Helpers\JoseHelper($c->get('AlgorithmManagerFactory'), $c->get('compressionMethodManager'), $c->get('debugLogger'));
 };
 
 /**
@@ -105,21 +106,34 @@ $container['PdoClientStorage'] = function (ContainerInterface $c) {
 $container['ValidatorManager'] = function (ContainerInterface $c) {
    $validatorManager = new \Oauth\Services\Validators\ValidatorManager();
     return $validatorManager
-            ->add('register', $c->get('ClientRegisterValidator'))
-            ->add('unregister', $c->get('ClientUnregisterValidator'));
+            ->add('register', [$c->get('ClientParameter')])
+            ->add('unregister', [$c->get('ClientAttribute')])
+            ->add('update',[$c->get('ClientAttribute'), $c->get('ClientParameter'), $c->get('ClientQueryParameter')]);
 };
 
 /**
  * @return \Oauth\Services\Validators\CustomValidators\ClientRegistrationValidator
  */
-$container['ClientRegisterValidator'] = function () {
+$container['ClientParameter'] = function () {
     return new \Oauth\Services\Validators\CustomValidators\ClientRegistrationValidator();
 };
 
-$container['ClientUnregisterValidator'] = function () {
-    $validator = new \Oauth\Services\Validators\Validator();
+/**
+ * @return \Oauth\Services\Validators\Validator
+ */
+$container['ClientAttribute'] = function () {
+    $validator = new \Oauth\Services\Validators\AttributeValidator();
     return $validator
-            ->add('clientId', new \Oauth\Services\Validators\Parameters\ClientIdentificationRule(true));
+            ->add('clientId', new \Oauth\Services\Validators\Rules\ClientIdentificationRule(true));
+};
+
+/**
+ * @return \Oauth\Services\Validators\Validator
+ */
+$container['ClientQueryParameter'] = function () {
+    $validator = new \Oauth\Services\Validators\QueryValidator();
+    return $validator
+            ->add('field', new \Oauth\Services\Validators\Rules\QFieldRule(false));
 };
 
 /**

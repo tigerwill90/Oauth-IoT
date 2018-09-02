@@ -14,52 +14,52 @@ class ExtendClaimsTest implements ClaimsCheckerInterface
 {
     /**
      * Return false is sub don't match
-     * @param string $sub
+     * @param array $claims
      * @return bool
      */
-    public function verifySub(string $sub): bool
+    public function verifySub(array $claims): bool
     {
-        return $sub === 'subject';
+        return $claims['sub'] === 'subject';
     }
 
     /**
      * Return false if aud don't match
-     * @param string $aud
+     * @param array $claims
      * @return bool
      */
-    public function verifyAud(string $aud): bool
+    public function verifyAud(array $claims): bool
     {
-        return $aud === 'audience';
+        return $claims['aud'] === 'audience';
     }
 
     /**
      * Return false if iss don't match
-     * @param string $iss
+     * @param array $claims
      * @return bool
      */
-    public function verifyIss(string $iss): bool
+    public function verifyIss(array $claims): bool
     {
-        return $iss === 'issuer';
+        return $claims['iss'] === 'issuer';
     }
 
     /**
      * Return false if jti operation check is invalid
-     * @param string $jti
+     * @param array $claims
      * @return bool
      */
-    public function verifyJti(string $jti): bool
+    public function verifyJti(array $claims): bool
     {
-        return $jti === 'nonce';
+        return $claims['jti'] === 'nonce';
     }
 
     /**
      * Return false if permission don't match
-     * @param string $scope
+     * @param array $claims
      * @return bool
      */
-    public function verifyScope(string $scope): bool
+    public function verifyScope(array $claims): bool
     {
-        return $this->arrayEqual(explode(' ', $scope), ['read_rs', 'write_rs']);
+        return $this->arrayEqual(explode(' ', $claims['scope']), ['read_rs', 'write_rs']);
     }
 
     /**

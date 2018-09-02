@@ -23,7 +23,7 @@ final class ValidatorManager implements ValidatorManagerInterface
      *      'client' => Validator(),
      *      'alias' => Validator();
      * ]
-     * @var array[string]Validator
+     * @var array[string][Validator]
      */
     private $validators;
 
@@ -33,10 +33,10 @@ final class ValidatorManager implements ValidatorManagerInterface
     /**
      * Add a new Validator
      * @param string $validatorAlias
-     * @param Validator $validators
+     * @param array[string][Validator] $validators
      * @return ValidatorManagerInterface
      */
-    public function add(string $validatorAlias, Validator $validators) : ValidatorManagerInterface
+    public function add(string $validatorAlias, array $validators) : ValidatorManagerInterface
     {
         $this->validators[$validatorAlias] = $validators;
         return $this;
@@ -54,10 +54,15 @@ final class ValidatorManager implements ValidatorManagerInterface
             if ($this->validators[$alias] === null) {
                 throw new \LogicException('No validator is register for ' . $alias . ' alias');
             }
-            $this->validators[$alias]->checkParametersExist($request);
-            $this->validators[$alias]->validateParameters($request);
-            if (!empty($this->validators[$alias]->getErrorsMessages())) {
-                $this->errors[$alias] = $this->validators[$alias]->getErrorsMessages();
+
+            foreach ($this->validators[$alias] as $validator) {
+                $validator->checkExist($request);
+                $validator->validate($request);
+                if (!empty($validator->getErrorsMessages())) {
+                    foreach ($validator->getErrorsMessages() as $key => $message) {
+                        $this->errors[$alias][$key] = $message;
+                    }
+                }
             }
         }
         return empty($this->errors);

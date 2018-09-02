@@ -8,35 +8,55 @@
 
 namespace Oauth\Services;
 
+use Memcached;
+
 class ClaimsCheckerRules implements ClaimsCheckerInterface
 {
+    /** @var Memcached  */
+    private $mc;
 
     // Necessary stuff to perform claims verification
-    public function __construct()
+    public function __construct(Memcached $mc)
     {
+        $this->mc = $mc;
     }
 
-    public function verifySub(string $sub) : bool
+    public function verifySub(array $claims) : bool
     {
         return false;
     }
 
-    public function verifyAud(string $aud) : bool
+    /**
+     * Verify than aud match with the RS (use resource identification to perform the check)
+     * @param array $claims
+     * @return bool
+     */
+    public function verifyAud(array $claims) : bool
     {
-        return $aud === 'Your application';
+        return $claims['aud'] === 'iot_a';
     }
 
-    public function verifyIss(string $iss) : bool
+    public function verifyIss(array $claims) : bool
     {
-        return $iss === 'My service';
+        return $claims['iss'] === 'My service';
     }
 
-    public function verifyJti(string $jti) : bool
+    public function verifyJti(array $claims) : bool
     {
-        return $jti !== 'nonce';
+        // jti already used ?
+        if (!empty($this->mc->get($claims['jti']))) {
+            return false;
+        }
+        $secondBeforeExpiration = $claims['exp'] - time();
+
+        // Do not save nonce for an expired token (STRICT > 0)
+        if ($secondBeforeExpiration > 0) {
+            $this->mc->add($claims['jti'], 'nonce', $secondBeforeExpiration);
+        }
+        return true;
     }
 
-    public function verifyScope(string $scope) : bool
+    public function verifyScope(array $claims) : bool
     {
         return false;
     }

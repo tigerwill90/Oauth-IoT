@@ -55,6 +55,7 @@ class ClientRegister
         $client->setRegistrationDate(new \DateTime());
         // Not sur than this is in right way
         $client->setScope(array_unique($client->getScope()));
+        $client->setRedirectUri(array_unique($client->getRedirectUri()));
         $attemptsNumber = 0;
         $exception = true;
         while ($exception) {

@@ -9,7 +9,7 @@
 namespace Oauth\Services;
 
 
-class ClaimCheckerManager
+class ClaimsCheckerManager
 {
     /** @var array[string]ClaimsCheckerInterface */
     private $claimsChecker;
@@ -17,7 +17,7 @@ class ClaimCheckerManager
     /**
      * @param string $checkerAlias
      * @param ClaimsCheckerInterface $claimChecker
-     * @return ClaimCheckerManager
+     * @return ClaimsCheckerManager
      */
     public function add(string $checkerAlias, ClaimsCheckerInterface $claimChecker) : self
     {

@@ -8,14 +8,15 @@
 
 namespace Oauth\Services\Validators\CustomValidators;
 
-use Oauth\Services\Validators\Parameters\ClientNameRule;
-use Oauth\Services\Validators\Parameters\ClientTypeRule;
-use Oauth\services\Validators\Parameters\GrantTypeRule;
-use Oauth\Services\Validators\Parameters\RedirectUriRule;
-use Oauth\Services\Validators\Parameters\ScopeRule;
+use Oauth\Services\Validators\Rules\ClientNameRule;
+use Oauth\Services\Validators\Rules\ClientTypeRule;
+use Oauth\services\Validators\Rules\GrantTypeRule;
+use Oauth\Services\Validators\Rules\RedirectUriRule;
+use Oauth\Services\Validators\Rules\ScopeRule;
+use Oauth\Services\Validators\ParameterValidator;
 use Oauth\Services\Validators\Validator;
 
-class ClientRegistrationValidator extends Validator
+class ClientRegistrationValidator extends ParameterValidator
 {
     public function __construct()
     {

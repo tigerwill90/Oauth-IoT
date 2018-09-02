@@ -3,14 +3,14 @@
  * Created by PhpStorm.
  * User: thor
  * Date: 8/30/18
- * Time: 3:37 PM
+ * Time: 1:04 AM
  */
 
-namespace Oauth\services\Validators\Parameters;
+namespace Oauth\Services\Validators\Rules;
 
 use Respect\Validation\Validator;
 
-class GrantTypeRule extends ParameterRule
+class ClientNameRule extends RuleValidator
 {
     /**
      * Get a validator instance
@@ -18,6 +18,6 @@ class GrantTypeRule extends ParameterRule
      */
     public function getValidator(): Validator
     {
-        return Validator::in(['code', 'implicit'])->notBlank();
+        return Validator::length(3, 80)->notBlank()->graph(' ');
     }
 }

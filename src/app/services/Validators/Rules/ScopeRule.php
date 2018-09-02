@@ -6,11 +6,11 @@
  * Time: 5:05 PM
  */
 
-namespace Oauth\Services\Validators\Parameters;
+namespace Oauth\Services\Validators\Rules;
 
 use Respect\Validation\Validator;
 
-class ScopeRule extends ParameterRule
+class ScopeRule extends RuleValidator
 {
     /**
      * Get a validator instance

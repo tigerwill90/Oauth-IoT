@@ -23,6 +23,7 @@ use Jose\Component\Signature\JWS;
 use Jose\Component\Signature\JWSBuilder;
 use Jose\Component\Signature\JWSVerifier;
 use Jose\Component\Signature\Serializer\JWSSerializer;
+use Psr\Log\LoggerInterface;
 
 class JoseHelper implements JoseHelperInterface
 {
@@ -38,18 +39,6 @@ class JoseHelper implements JoseHelperInterface
     /** @var string */
     private $token;
 
-    /** @var string */
-    private $joseType = self::JWT;
-
-    /** @var string  */
-    private $keyAlg;
-
-    /** @var  */
-    private $keyContent;
-
-    /** @var int */
-    private $sig;
-
     /** @var array */
     private $headers;
 
@@ -62,32 +51,21 @@ class JoseHelper implements JoseHelperInterface
     /** @var CompressionMethodManager */
     private $compressionMethodManager;
 
+    /** @var LoggerInterface  */
+    private $logger;
+
     /**
      * JoseHelper constructor.
      * @param AlgorithmManagerFactory $algorithmManagerFactory
      * @param CompressionMethodManager $compressionMethodManager
+     * @param LoggerInterface|null $logger
      */
-    public function __construct(AlgorithmManagerFactory $algorithmManagerFactory, CompressionMethodManager $compressionMethodManager)
+    public function __construct(AlgorithmManagerFactory $algorithmManagerFactory, CompressionMethodManager $compressionMethodManager, LoggerInterface $logger = null)
     {
         $this->jsonConverter = new StandardConverter();
         $this->algorithmManagerFactory = $algorithmManagerFactory;
         $this->compressionMethodManager = $compressionMethodManager;
-    }
-
-    /**
-     * Set JWK
-     * @param string $key
-     * @param string $keyType
-     * @return JoseHelperInterface
-     * @throws
-     */
-    public function setJwkKey(string $key, string $keyType = self::OCT): JoseHelperInterface
-    {
-        $this->jwk = JWK::create([
-            'kty' => $keyType,
-            'k' => $key
-        ]);
-        return $this;
+        $this->logger = $logger;
     }
 
     /**
@@ -98,20 +76,6 @@ class JoseHelper implements JoseHelperInterface
     public function setJwk(JWK $jwk) : JoseHelperInterface
     {
         $this->jwk = $jwk;
-        return $this;
-    }
-
-    /**
-     * Set JoseHelper type
-     * @param string $joseType
-     * @return JoseHelperInterface
-     */
-    public function setType(string $joseType = self::JWT): JoseHelperInterface
-    {
-        if (!\in_array(strtoupper($joseType), [self::JWT, self::JWE], true)) {
-            throw new \InvalidArgumentException('Only JWE and JWT are supported yet');
-        }
-        $this->joseType = strtoupper($joseType);
         return $this;
     }
 
@@ -127,22 +91,6 @@ class JoseHelper implements JoseHelperInterface
     }
 
     /**
-     * Set algorithm
-     * @param string $keyAlg
-     * @param string|null $keyContent
-     * @param int $sig
-     * @return JoseHelperInterface
-     */
-    public function setAlgorithm(string $keyAlg, string $keyContent = null, int $sig = 0) : JoseHelperInterface
-    {
-        $this->keyAlg = $keyAlg;
-        $this->keyContent = $keyContent;
-        $this->sig = $sig;
-        return $this;
-    }
-
-
-    /**
      * Create a new JWS/JWE token
      * @param array $payload
      * @return string
@@ -151,27 +99,40 @@ class JoseHelper implements JoseHelperInterface
     public function createToken(array $payload): string
     {
         $encodedPayload = $this->jsonConverter->encode($payload);
-        if ($this->joseType === self::JWT) {
+        // Check mandatory JWK parameter
+        if (!$this->jwk->has('use')) {
+            throw new \InvalidArgumentException('The JWK must have the "use" parameter');
+        }
+        if (!$this->jwk->has('alg')) {
+            throw new \InvalidArgumentException('The JWK must have the "alg" parameter');
+        }
+        if (!$this->jwk->has('kid') || empty($this->jwk->get('kid'))) {
+            throw new \InvalidArgumentException('The JWK must have a no empty "kid" parameter');
+        }
+
+        if ($this->jwk->get('use') === 'sig') {
             $serializer = $this->getJwsCompactSerializerInterface();
-            $jose = $this->createJwsBuilder($this->createAlgorithmManager([$this->keyAlg]))
+            $jose = $this->createJwsBuilder($this->createAlgorithmManager([$this->jwk->get('alg')]))
                 ->create()
                 ->withPayload($encodedPayload)
-                ->addSignature($this->jwk, ['alg' => $this->keyAlg, 'typ' => $this->joseType])
+                ->addSignature($this->jwk, ['alg' => $this->jwk->get('alg'), 'typ' => 'JWT', 'kid' => $this->jwk->get('kid')])
                 ->build();
         } else {
             $serializer = $this->getJweCompactSerializerInterface();
-            if ($this->keyContent === null) {
-                throw new \InvalidArgumentException('Key for content must be set in JWE mode');
+            if (!$this->jwk->has('enc')) {
+                throw new \InvalidArgumentException('The JWK must have the "enc" parameter to encrypt parameter');
             }
             // temp
-            $jose = $this->createJweBuilder($this->createAlgorithmManager(array($this->keyAlg)), $this->createAlgorithmManager(array($this->keyContent)))
+            $jose = $this->createJweBuilder($this->createAlgorithmManager(array($this->jwk->get('alg'))), $this->createAlgorithmManager(array($this->jwk->get('enc'))))
                 ->create()
                 ->withPayload($encodedPayload)
+                // TODO kid
                 ->withSharedProtectedHeader([
-                    'alg' => $this->keyAlg,
-                    'enc' => $this->keyContent,
+                    'alg' => $this->jwk->get('alg'),
+                    'enc' => $this->jwk->get('enc'),
                     'zip' => 'DEF',
-                    'typ' => $this->joseType
+                    'typ' => 'JWE',
+                    'kid' => $this->jwk->get('kid')
                 ])
                 ->addRecipient($this->jwk)
                 ->build();
@@ -192,20 +153,34 @@ class JoseHelper implements JoseHelperInterface
     public function verifyToken(): bool
     {
         unset($this->jwe, $this->jws);
-        if ($this->joseType === self::JWT)  {
+
+        if (!$this->jwk->has('use')) {
+            throw new \InvalidArgumentException('The JWK must have the "use" parameter');
+        }
+        if (!$this->jwk->has('alg')) {
+            throw new \InvalidArgumentException('The JWK must have the "alg" parameter');
+        }
+
+        if ($this->jwk->get('use') === 'sig')  {
             try {
                 $this->jws = $this->decodeJwsToken($this->token);
             } catch (\Exception $e) {
                 throw $e;
             }
-            return $this->createJwsVerifier($this->createAlgorithmManager([$this->keyAlg]))->verifyWithKey($this->jws, $this->jwk, $this->sig);
+
+            return $this->createJwsVerifier($this->createAlgorithmManager([$this->jwk->get('alg')]))->verifyWithKey($this->jws, $this->jwk, 0);
         }
+
+        if (!$this->jwk->has('enc')) {
+            throw new \InvalidArgumentException('The JWK must have the "enc" parameter');
+        }
+
         try {
             $this->jwe = $this->decodeJweToken($this->token);
         } catch (\Exception $e) {
             throw $e;
         }
-        return $this->createJweDecrypter($this->createAlgorithmManager([$this->keyAlg]), $this->createAlgorithmManager([$this->keyContent]))->decryptUsingKey($this->jwe, $this->jwk, $this->sig);
+        return $this->createJweDecrypter($this->createAlgorithmManager([$this->jwk->get('alg')]), $this->createAlgorithmManager([$this->jwk->get('enc')]))->decryptUsingKey($this->jwe, $this->jwk, 0);
     }
 
     /**
@@ -242,7 +217,11 @@ class JoseHelper implements JoseHelperInterface
      */
     public function getClaims() : array
     {
-        if ($this->joseType === self::JWT) {
+        if (!$this->jwk->has('use')) {
+            throw new \InvalidArgumentException('The JWK must have the "use" parameter');
+        }
+
+        if ($this->jwk->get('use') === 'sig') {
             if ($this->jws === null) {
                 try {
                     $this->jws = $this->decodeJwsToken($this->token);
@@ -252,9 +231,16 @@ class JoseHelper implements JoseHelperInterface
             }
             return (array)$this->jsonConverter->decode($this->jws->getPayload(), true);
         }
+        if (!$this->jwk->has('alg')) {
+            throw new \InvalidArgumentException('The JWK must have the "alg" parameter');
+        }
+        if (!$this->jwk->has('enc')) {
+            throw new \InvalidArgumentException('The JWK must have the "enc" parameter');
+        }
         try {
-            $this->jwe = $this->createJweLoader($this->createAlgorithmManager([$this->keyAlg]), $this->createAlgorithmManager([$this->keyContent]))
-                ->loadAndDecryptWithKey($this->token, $this->jwk, $this->sig);
+            $recipient = 0;
+            $this->jwe = $this->createJweLoader($this->createAlgorithmManager([$this->jwk->get('alg')]), $this->createAlgorithmManager([$this->jwk->get('enc')]))
+                ->loadAndDecryptWithKey($this->token, $this->jwk, $recipient);
         } catch (\Exception $e) {
             throw $e;
         }
@@ -383,5 +369,18 @@ class JoseHelper implements JoseHelperInterface
     private function createJweLoader(AlgorithmManager $keyEncryptionAlgorithmManager, AlgorithmManager $contentEncryptionAlgorithmManager) : JWELoader
     {
         return new JWELoader($this->createJweSerializerManager(), $this->createJweDecrypter($keyEncryptionAlgorithmManager, $contentEncryptionAlgorithmManager), null);
+    }
+
+    /**
+     * @param string $message
+     * @param array $context
+     * @return JoseHelper
+     */
+    private function log(string $message, array $context = []) : self
+    {
+        if (null !== $this->logger) {
+            $this->logger->debug($message, $context);
+        }
+        return $this;
     }
 }

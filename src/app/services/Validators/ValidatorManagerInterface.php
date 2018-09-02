@@ -14,10 +14,10 @@ interface ValidatorManagerInterface
 {
     /**
      * @param string $validatorAlias
-     * @param Validator $validators
+     * @param Validator[] $validators
      * @return ValidatorManagerInterface
      */
-    public function add(string $validatorAlias, Validator $validators) : ValidatorManagerInterface;
+    public function add(string $validatorAlias, array $validators) : ValidatorManagerInterface;
 
     /**
      * Validate the request for all Validator

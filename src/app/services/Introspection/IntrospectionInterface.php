@@ -8,6 +8,8 @@
 
 namespace Oauth\Services;
 
+use Jose\Component\Core\JWKSet;
+
 /**
  * OAuth 2.0 Token Introspection RFC 7662
  *
@@ -59,7 +61,7 @@ interface IntrospectionInterface extends \JsonSerializable
      * @param string[] $claims => must be standardized claims
      * @return IntrospectionInterface
      */
-    public function setClaimsToVerify(array $claims = [self::CLAIM_ISS, self::CLAIM_EXP, self::CLAIM_JTI]) : IntrospectionInterface;
+    public function setMandatoryClaims(array $claims = [self::CLAIM_ISS, self::CLAIM_EXP, self::CLAIM_JTI]) : IntrospectionInterface;
 
     /**
      * Set parameters who MUST representing the introspection request and OPTIONAL parameter
@@ -99,11 +101,11 @@ interface IntrospectionInterface extends \JsonSerializable
      * Introspect the given token and return true if the token is well formed
      *
      * @param \Psr\Http\Message\ServerRequestInterface $request => PSR7 request who contains OAuth 2.0 token who need to be introspected
-     * @param string $secretKey
-     * @param string $keyType
+     * @param JWKSet $jwkSet
+     * @param bool $onlyMandatoryClaims
      * @return bool => the result of introspection process
      */
-    public function introspectToken(\Psr\Http\Message\ServerRequestInterface $request, string $secretKey, string $keyType) : bool;
+    public function introspectToken(\Psr\Http\Message\ServerRequestInterface $request, JWKSet $jwkSet, bool $onlyMandatoryClaims = false) : bool;
 
     /**
      * Return an appropriate response array

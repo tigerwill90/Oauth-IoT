@@ -40,7 +40,7 @@ class Client implements ClientInterface
     private $registrationDate;
 
     /**
-     * Client constructor.
+     * Clients constructor.
      * @param array $client
      */
     public function __construct(array $client)
@@ -255,7 +255,7 @@ class Client implements ClientInterface
      * which is a value of any type other than a resource.
      * @since 5.4.0
      */
-    public function jsonSerialize()
+    public function jsonSerialize() : array
     {
         return [
             'client_id' => $this->clientIdentification,

@@ -3,14 +3,14 @@
  * Created by PhpStorm.
  * User: thor
  * Date: 8/30/18
- * Time: 4:59 PM
+ * Time: 5:12 PM
  */
 
-namespace Oauth\Services\Validators\Parameters;
+namespace Oauth\Services\Validators\Rules;
 
 use Respect\Validation\Validator;
 
-class ClientTypeRule extends ParameterRule
+class DateRule extends RuleValidator
 {
     /**
      * Get a validator instance
@@ -18,6 +18,6 @@ class ClientTypeRule extends ParameterRule
      */
     public function getValidator(): Validator
     {
-        return Validator::in(['confidential', 'public'])->notBlank();
+        return Validator::date();
     }
 }

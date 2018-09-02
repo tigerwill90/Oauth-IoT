@@ -9,6 +9,7 @@
 namespace Oauth\Controllers;
 
 use Jose\Component\Core\JWK;
+use Jose\Component\Core\JWKSet;
 use Oauth\Services\Helpers\JoseHelperInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -23,46 +24,61 @@ final class TokenEndpoint
     /** @var LoggerInterface  */
     private $logger;
 
+    /** @var Memcached  */
     private $mc;
 
-    public function __construct(JoseHelperInterface $joseHelper, Memcached $mc, LoggerInterface $logger)
+    public function __construct(JoseHelperInterface $joseHelper, Memcached $mc, LoggerInterface $logger = null)
     {
         $this->joseHelper = $joseHelper;
         $this->mc = $mc;
         $this->logger = $logger;
     }
 
+    /**
+     * @param ServerRequestInterface $request
+     * @param ResponseInterface $response
+     * @return ResponseInterface
+     * @throws \Exception
+     */
     public function __invoke(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface
     {
         $payload = [
-            'exp' => time() + 20,
-            'jti' => '0123456789'
+            'exp' => time() + 60,
+            'jti' => '01234',
+            'aud' => 'iot_a'
         ];
 
-        $jsonJwk = $this->mc->get('jwk');
+        /**
+         * kid =>
+         *
+         */
+
+        $jwkSet = $this->mc->get('symmetricKey');
         $fromCache = false;
-        if ($jsonJwk) {
+        if ($jwkSet) {
             $fromCache = true;
-            $jwk = JWK::createFromJson($jsonJwk);
+            $jwkSet = JWKSet::createFromJson($jwkSet);
         } else {
             $jwk = JWK::create([
                 'kty' => 'oct',
-                'k' => getenv('KEY')
+                'k' => getenv('KEY'),
+                'alg' => 'HS256',
+                'use' => 'sig',
+                'enc' => 'A256CBC-HS512',
+                'kid' => '12345'
             ]);
-            $this->mc->set('jwk', json_encode($jwk), 30);
+            $jwkSet = JWKSet::createFromKeys([]);
+            $jwkSet = $jwkSet->with($jwk);
+            $this->mc->set('symmetricKey', json_encode($jwkSet), 30);
         }
 
         try {
             $token = $this->joseHelper
-                ->setJwk($jwk)
-                ->setType('JWT')
-                ->setAlgorithm('HS256')
+                ->setJwk($jwkSet->get('12345'))
                 ->createToken($payload);
         } catch (\Exception $e) {
             throw new \LogicException($e->getMessage());
         }
-
-        //$this->joseHelper->setJoseToken('eyJhbGciOiJIUzM4NCIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MzU0OTA0NDgsImp0aSI6IjAxMjM0NTY3ODkifQ.wMV3d_fVfwIBbtCMoNNZhB_fzngesXvY1mwrGn3hHlbCHc8HrFqf1bn7z2Z123y7');
 
        try {
            $foo = $this->joseHelper->getHeaders();
@@ -73,5 +89,18 @@ final class TokenEndpoint
         $body = $response->getBody();
         $body->write(json_encode(['access_token' => $token, 'headers' => $foo, 'from_cache' => $fromCache]));
         return $response->withBody($body)->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * @param string $message
+     * @param array $context
+     * @return TokenEndpoint
+     */
+    private function log(string $message, array $context = []) : self
+    {
+        if (null !== $this->logger) {
+            $this->logger->debug($message, $context);
+        }
+        return $this;
     }
 }

@@ -8,6 +8,8 @@
 
 namespace Oauth\Controllers;
 
+use Jose\Component\Core\JWK;
+use Jose\Component\Core\JWKSet;
 use Oauth\Services\Helpers\AesHelperInterface;
 use Oauth\Services\ClaimsCheckerRules;
 use Oauth\Services\IntrospectionInterface;
@@ -46,12 +48,23 @@ final class IntrospectionEndpoint
             ->setMode(AES::MODE_ECB)
             ->aesEncrypt('abcdef!hij012345', 'AaBbCcDdEe0123Az', false);
 
+        $jwk = JWK::create([
+            'kty' => 'oct',
+            'k' => getenv('KEY'),
+            'alg' => 'HS256',
+            'use' => 'sig',
+            'enc' => 'A256CBC-HS512',
+            'kid' => '12345'
+        ]);
+
+        $jwkSet = JWKSet::createFromKeys([$jwk]);
+
         $isValidToken =$this->introspection
             ->withChecker('standard')
             ->setRequestParameterToVerify('token')
-            ->setClaimsToVerify([IntrospectionInterface::CLAIM_EXP, IntrospectionInterface::CLAIM_JTI])
+            ->setMandatoryClaims([IntrospectionInterface::CLAIM_EXP, IntrospectionInterface::CLAIM_JTI, IntrospectionInterface::CLAIM_AUD])
             ->setActiveResponseParameter(['exp'], null, null, ['key' => $encryptedKey])
-            ->introspectToken($request, getenv('KEY'), 'oct');
+            ->introspectToken($request, $jwkSet, true);
 
         $body = $response->getBody();
         $body->write(json_encode($this->introspection, JSON_UNESCAPED_SLASHES));
@@ -60,7 +73,9 @@ final class IntrospectionEndpoint
             ->withHeader('content-type', 'application/json');
 
         if ($isValidToken) {
-            $this->logger->info(print_r($this->introspection->getInvalidClaims(), true), ['info' => 'invalid claims']);
+            if (!empty($this->introspection->getInvalidClaims())) {
+                $this->logger->info(print_r($this->introspection->getInvalidClaims(), true), ['info' => 'invalid claims']);
+            }
             return $newResponse;
         }
 

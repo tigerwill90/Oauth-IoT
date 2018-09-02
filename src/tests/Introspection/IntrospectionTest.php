@@ -10,7 +10,9 @@ namespace Oauth\Tests\Introspection;
 
 use Jose\Component\Core\AlgorithmManagerFactory;
 use Jose\Component\Core\JWK;
+use Jose\Component\Core\JWKSet;
 use Jose\Component\Encryption\Compression\CompressionMethodManager;
+use Oauth\Services\ClaimsCheckerManager;
 use Oauth\Services\Helpers\AlgorithmManagerHelper;
 use Oauth\Services\Helpers\AlgorithmManagerHelperInterface;
 use Oauth\Services\Introspection;
@@ -89,10 +91,19 @@ class IntrospectionTest extends TestCase
         $joseHelper = $this->getJoseHelper();
 
         return $joseHelper
-            ->setJwk(JWK::create(['kty' => $keyType, 'k' => $key]))
-            ->setType(JoseHelperInterface::JWT)
-            ->setAlgorithm($alg)
+            ->setJwk(JWK::create(['kty' => $keyType, 'k' => $key, 'alg' => 'HS256', 'use' => 'sig', 'kid' => '5555']))
             ->createToken($payload);
+    }
+
+    private function getJwkSet(string $key, string $keyType = 'oct') : JWKSet
+    {
+        return JWKSet::createFromKeys([JWK::create(['kty' => $keyType, 'k' => $key, 'alg' => 'HS256', 'use' => 'sig', 'kid' => '5555'])]);
+    }
+
+    private function getClaimsCheckerManager() : ClaimsCheckerManager
+    {
+        $claimCheckerManager = new ClaimsCheckerManager();
+        return $claimCheckerManager->add('standard', new ExtendClaimsTest());
     }
 
     public function testShouldBeTrue() : void
@@ -103,18 +114,18 @@ class IntrospectionTest extends TestCase
     /** This method implement a full test for token introspection protocol with a valid PSR-7 request with valid signature */
     public function testIntrospectionShouldReturnActiveJsonResponse() : void
     {
-        $introspection = new Introspection($this->getJoseHelper(), $this->getAlgorithmManagerHelper());
+        $introspection = new Introspection($this->getJoseHelper(), $this->getAlgorithmManagerHelper(), $this->getClaimsCheckerManager());
         $token = $this->getJwsObject(self::KEY, time(), time(), time() + 60);
         $request = $this->requestFactory()->withParsedBody([Introspection::PARAM_TOKEN => $token, Introspection::PARAM_TYPE_HINT => 'HS256', 'foo' => 'foo', 'bar' => 'bar']);
         $isValid = $introspection
-            ->injectClaimsChecker(new ExtendClaimsTest())
-            ->setClaimsToVerify([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
+            ->withChecker('standard')
+            ->setMandatoryClaims([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
             ->setRequestParameterToVerify(Introspection::PARAM_TOKEN, Introspection::PARAM_TYPE_HINT, ['foo', 'bar'])
             ->setActiveResponseParameter([Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], 'John Doe', 10, ['key' => '/super/secret/'])
-            ->introspectToken($request, self::KEY, 'oct');
+            ->introspectToken($request, $this->getJwkSet(self::KEY));
 
 
-        $arrayResponse = json_decode($introspection->getJsonResponse(), true);
+        $arrayResponse = $introspection->getResponseArray();
         $this->assertTrue($isValid);
         $this->assertArrayHasKey(Introspection::RESP_ACTIVE, $arrayResponse);
         $this->assertTrue($arrayResponse[Introspection::RESP_ACTIVE]);
@@ -134,18 +145,18 @@ class IntrospectionTest extends TestCase
     /** This method implement a full test for token introspection protocol with a valid PSR-7 request with invalid signature */
     public function testIntrospectionShouldReturnInactiveJsonResponse() : void
     {
-        $introspection = new Introspection($this->getJoseHelper(), $this->getAlgorithmManagerHelper());
+        $introspection = new Introspection($this->getJoseHelper(), $this->getAlgorithmManagerHelper(), $this->getClaimsCheckerManager());
         $token = $this->getJwsObject('thisisawrongkey', time(), time(), time() + 60);
         $request = $this->requestFactory()->withParsedBody([Introspection::PARAM_TOKEN => $token, Introspection::PARAM_TYPE_HINT => 'HS256', 'foo' => 'foo', 'bar' => 'bar']);
         $isValid = $introspection
-            ->injectClaimsChecker(new ExtendClaimsTest())
-            ->setClaimsToVerify([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
+            ->withChecker('standard')
+            ->setMandatoryClaims([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
             ->setRequestParameterToVerify(Introspection::PARAM_TOKEN, Introspection::PARAM_TYPE_HINT, ['foo', 'bar'])
             ->setActiveResponseParameter([Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], 'John Doe', 10, ['key' => '/super/secret/'])
-            ->introspectToken($request, self::KEY, 'oct');
+            ->introspectToken($request, $this->getJwkSet(self::KEY));
 
         $this->assertTrue($isValid);
-        $arrayResponse = json_decode($introspection->getJsonResponse(), true);
+        $arrayResponse = $introspection->getResponseArray();
         $this->assertArrayHasKey(Introspection::RESP_ACTIVE, $arrayResponse);
         $this->assertFalse($arrayResponse[Introspection::RESP_ACTIVE]);
     }
@@ -153,18 +164,18 @@ class IntrospectionTest extends TestCase
     /** This method implement a full test for token introspection protocol with an invalid PSR-7 request (invalid token) */
     public function testIntrospectionShouldReturnError() : void
     {
-        $introspection = new Introspection($this->getJoseHelper(), $this->getAlgorithmManagerHelper());
+        $introspection = new Introspection($this->getJoseHelper(), $this->getAlgorithmManagerHelper(), $this->getClaimsCheckerManager());
         $request = $this->requestFactory()->withParsedBody([Introspection::PARAM_TOKEN => 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MzU1NDY1MTMsImp0aSI6IjAxMjM0NY3ODkifQ.cKadPlZjIhlHmc1_ltuAjvoWEjMBdr3grips3dpjv2w', Introspection::PARAM_TYPE_HINT => 'HS256', 'foo' => 'foo', 'bar' => 'bar']);
 
         $isValid = $introspection
-            ->injectClaimsChecker(new ExtendClaimsTest())
-            ->setClaimsToVerify([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
+            ->withChecker('standard')
+            ->setMandatoryClaims([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
             ->setRequestParameterToVerify(Introspection::PARAM_TOKEN, Introspection::PARAM_TYPE_HINT, ['foo', 'bar'])
             ->setActiveResponseParameter([Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], 'John Doe', 10, ['key' => '/super/secret/'])
-            ->introspectToken($request, self::KEY, 'oct');
+            ->introspectToken($request, $this->getJwkSet(self::KEY));
 
         $this->assertTrue($isValid);
-        $arrayResponse = json_decode($introspection->getJsonResponse(), true);
+        $arrayResponse = $introspection->getResponseArray();
         $this->assertArrayHasKey(Introspection::RESP_ACTIVE, $arrayResponse);
         $this->assertFalse($arrayResponse[Introspection::RESP_ACTIVE]);
     }
@@ -172,7 +183,7 @@ class IntrospectionTest extends TestCase
     /** This method implement multiple test for token introspection with invalid claim time */
     public function testIntrospectionShouldReturnInactiveJsonResponseWithTimeClaim() : void
     {
-        $introspection = new Introspection($this->getJoseHelper(), $this->getAlgorithmManagerHelper());
+        $introspection = new Introspection($this->getJoseHelper(), $this->getAlgorithmManagerHelper(), $this->getClaimsCheckerManager());
         $nbf = time() + 10;
         $iat = time() + 15;
         $exp = time() - 60;
@@ -186,50 +197,50 @@ class IntrospectionTest extends TestCase
         $request4 = $this->requestFactory()->withParsedBody([Introspection::PARAM_TOKEN => $token4, Introspection::PARAM_TYPE_HINT => 'HS256', 'foo' => 'foo', 'bar' => 'bar']);
 
         $isValid1 = $introspection
-            ->injectClaimsChecker(new ExtendClaimsTest())
-            ->setClaimsToVerify([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
+            ->withChecker('standard')
+            ->setMandatoryClaims([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
             ->setRequestParameterToVerify(Introspection::PARAM_TOKEN, Introspection::PARAM_TYPE_HINT, ['foo', 'bar'])
             ->setActiveResponseParameter([Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], 'John Doe', 10, ['key' => '/super/secret/'])
-            ->introspectToken($request1, self::KEY, 'oct');
+            ->introspectToken($request1, $this->getJwkSet(self::KEY));
 
         $this->assertTrue($isValid1);
-        $arrayResponse = json_decode($introspection->getJsonResponse(), true);
+        $arrayResponse = $introspection->getResponseArray();
         $this->assertEquals($arrayResponse, [Introspection::RESP_ACTIVE => false]);
         $this->assertEquals($introspection->getInvalidClaims(), ['iat' => $iat]);
 
         $isValid2 = $introspection
-            ->injectClaimsChecker(new ExtendClaimsTest())
-            ->setClaimsToVerify([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
+            ->withChecker('standard')
+            ->setMandatoryClaims([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
             ->setRequestParameterToVerify(Introspection::PARAM_TOKEN, Introspection::PARAM_TYPE_HINT, ['foo', 'bar'])
             ->setActiveResponseParameter([Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], 'John Doe', 10, ['key' => '/super/secret/'])
-            ->introspectToken($request2, self::KEY, 'oct');
+            ->introspectToken($request2, $this->getJwkSet(self::KEY));
 
         $this->assertTrue($isValid2);
-        $arrayResponse = json_decode($introspection->getJsonResponse(), true);
+        $arrayResponse = $introspection->getResponseArray();
         $this->assertEquals($arrayResponse, [Introspection::RESP_ACTIVE => false]);
         $this->assertEquals($introspection->getInvalidClaims(), ['nbf' => $nbf]);
 
         $isValid3 = $introspection
-            ->injectClaimsChecker(new ExtendClaimsTest())
-            ->setClaimsToVerify([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
+            ->withChecker('standard')
+            ->setMandatoryClaims([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
             ->setRequestParameterToVerify(Introspection::PARAM_TOKEN, Introspection::PARAM_TYPE_HINT, ['foo', 'bar'])
             ->setActiveResponseParameter([Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], 'John Doe', 10, ['key' => '/super/secret/'])
-            ->introspectToken($request3, self::KEY, 'oct');
+            ->introspectToken($request3, $this->getJwkSet(self::KEY));
 
         $this->assertTrue($isValid3);
-        $arrayResponse = json_decode($introspection->getJsonResponse(), true);
+        $arrayResponse = $introspection->getResponseArray();
         $this->assertEquals($arrayResponse, [Introspection::RESP_ACTIVE => false]);
         $this->assertEquals($introspection->getInvalidClaims(), ['exp' => $exp]);
 
         $isValid4 = $introspection
-            ->injectClaimsChecker(new ExtendClaimsTest())
-            ->setClaimsToVerify([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
+            ->withChecker('standard')
+            ->setMandatoryClaims([Introspection::CLAIM_EXP, Introspection::CLAIM_IAT, Introspection::CLAIM_NBF, Introspection::CLAIM_SUB, Introspection::CLAIM_AUD, Introspection::CLAIM_ISS, Introspection::CLAIM_JTI, Introspection::CLAIM_SCOPE])
             ->setRequestParameterToVerify(Introspection::PARAM_TOKEN, Introspection::PARAM_TYPE_HINT, ['foo', 'bar'])
             ->setActiveResponseParameter([Introspection::RESP_AUD, Introspection::RESP_EXP, Introspection::RESP_IAT, Introspection::RESP_ISS, Introspection::RESP_JTI, Introspection::RESP_NBF, Introspection::RESP_SCOPE, Introspection::RESP_SUB, Introspection::RESP_TOKEN_TYPE], 'John Doe', 10, ['key' => '/super/secret/'])
-            ->introspectToken($request4, self::KEY, 'oct');
+            ->introspectToken($request4, $this->getJwkSet(self::KEY));
 
         $this->assertTrue($isValid4);
-        $arrayResponse = json_decode($introspection->getJsonResponse(), true);
+        $arrayResponse = $introspection->getResponseArray();
         $this->assertEquals($arrayResponse, [Introspection::RESP_ACTIVE => false]);
         $this->assertEquals($introspection->getInvalidClaims(), ['exp' => $exp, 'iat' => $iat, 'nbf' => $nbf]);
     }
