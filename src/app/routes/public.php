@@ -12,8 +12,9 @@
         return $response->withBody($body);
     });
 
-    $app->post('/introspect', Oauth\Controllers\IntrospectionController::class);
-    $app->get('/connect', Oauth\Controllers\ConnexionController::class);
+    $app->post('/introspect', Oauth\Controllers\IntrospectionEndpoint::class);
+    $app->get('/authorize', Oauth\Controllers\TokenEndpoint::class);
+    //$app->get('/auth', Callable);
     $app->group('/clients', function() {
         $this->post('', \Oauth\Controllers\CreateClientController::class);
         $this->delete('/{clientId}', \Oauth\Controllers\DeleteClientController::class);

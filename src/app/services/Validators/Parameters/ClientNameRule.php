@@ -18,6 +18,6 @@ class ClientNameRule extends ParameterRule
      */
     public function getValidator(): Validator
     {
-        return Validator::length(3, 80)->notBlank()->graph();
+        return Validator::length(3, 80)->notBlank()->graph(' ');
     }
 }

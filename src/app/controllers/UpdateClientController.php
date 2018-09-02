@@ -8,7 +8,6 @@
 
 namespace Oauth\Controllers;
 
-
 use Oauth\Services\Clients\Client;
 use Oauth\Services\Exceptions\Storage\NoEntityException;
 use Oauth\Services\Exceptions\ValidatorException;

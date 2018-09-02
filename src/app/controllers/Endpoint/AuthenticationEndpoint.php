@@ -6,10 +6,10 @@
  * Time: 3:22 PM
  */
 
-namespace Oauth\Services;
+namespace Oauth\Controllers;
 
 
-class Authentication
+class AuthenticationEndpoint
 {
 
 }

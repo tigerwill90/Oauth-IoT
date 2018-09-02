@@ -39,7 +39,7 @@ class Introspection implements IntrospectionInterface
     private $optionalParameters = [];
 
     /** @var array */
-    private $jsonResponse = [
+    private $response = [
         self::RESP_ACTIVE => false
     ];
 
@@ -64,6 +64,9 @@ class Introspection implements IntrospectionInterface
     /** @var ClaimsCheckerInterface  */
     private $claimsChecker;
 
+    /** @var ClaimCheckerManager */
+    private $claimsCheckerManager;
+
     /** @var int */
     private static $time;
 
@@ -74,24 +77,26 @@ class Introspection implements IntrospectionInterface
      * Introspection constructor.
      * @param JoseHelperInterface $joseHelper
      * @param AlgorithmManagerHelperInterface $algorithmHelper
+     * @param ClaimCheckerManager $claimCheckerManager
      * @param LoggerInterface|null $logger
      */
-    public function __construct(JoseHelperInterface $joseHelper, AlgorithmManagerHelperInterface $algorithmHelper, LoggerInterface $logger = null)
+    public function __construct(JoseHelperInterface $joseHelper, AlgorithmManagerHelperInterface $algorithmHelper, ClaimCheckerManager $claimCheckerManager, LoggerInterface $logger = null)
     {
         $this->joseHelper = $joseHelper;
         $this->algorithmHelper = $algorithmHelper;
+        $this->claimsCheckerManager = $claimCheckerManager;
         $this->logger = $logger;
     }
 
     /**
-     * Inject a callable class to process verification of claims
+     * Inject a ClaimsCheckerInterface instance to process verification of claims
      *
-     * @param ClaimsCheckerInterface $claimsChecker
+     * @param string $aliasChecker
      * @return IntrospectionInterface
      */
-    public function injectClaimsChecker(ClaimsCheckerInterface $claimsChecker): IntrospectionInterface
+    public function withChecker(string $aliasChecker): IntrospectionInterface
     {
-        $this->claimsChecker = $claimsChecker;
+        $this->claimsChecker = $this->claimsCheckerManager->getClaimChecker($aliasChecker);
         return $this;
     }
 
@@ -359,7 +364,7 @@ class Introspection implements IntrospectionInterface
      */
     private function setErrorResponse() : self
     {
-        $this->jsonResponse = [
+        $this->response = [
             self::ERROR => self::ERROR_MSG
         ];
         return $this;
@@ -377,7 +382,7 @@ class Introspection implements IntrospectionInterface
     {
 
         if ($active) {
-            $this->jsonResponse[self::RESP_ACTIVE] = $active;
+            $this->response[self::RESP_ACTIVE] = $active;
             $arrayResponse = $this->activeResponse;
             $arrayOptionalResponse = $this->optionalActiveResponse;
         } else {
@@ -389,41 +394,53 @@ class Introspection implements IntrospectionInterface
         foreach ($arrayResponse as $member) {
             // specific handling for token type hint
             if ($member === self::RESP_TOKEN_TYPE && null !== $this->tokenTypeHint) {
-                $this->jsonResponse[$member] = $this->alg;
+                $this->response[$member] = $this->alg;
                 continue;
             }
             // specific handling for username
             if ($active && $member === self::RESP_USERNAME) {
-                $this->jsonResponse[$member] = $this->username;
+                $this->response[$member] = $this->username;
                 continue;
             }
             // specific handling for client id
             if ($active && $member === self::RESP_CLIENT_ID) {
-                $this->jsonResponse[$member] = $this->clientId;
+                $this->response[$member] = $this->clientId;
                 continue;
             }
 
             if (null !== $claims && array_key_exists($member, $claims)) {
-                $this->jsonResponse[$member] = $claims[$member];
+                $this->response[$member] = $claims[$member];
             }
         }
 
         // Set optional response parameter
         foreach ($arrayOptionalResponse as $member => $value) {
-            $this->jsonResponse[$member] = $value;
+            $this->response[$member] = $value;
         }
 
         return $this;
     }
 
     /**
-     * Return a standardized json response
+     * Return a standardized array response
      *
-     * @return string
+     * @return array
      */
-    public function getJsonResponse(): string
+    public function getResponseArray() : array
     {
-        return json_encode($this->jsonResponse, JSON_UNESCAPED_SLASHES);
+        return $this->response;
+    }
+
+    /**
+     * Specify data which should be serialized to JSON
+     * @link https://php.net/manual/en/jsonserializable.jsonserialize.php
+     * @return mixed data which can be serialized by <b>json_encode</b>,
+     * which is a value of any type other than a resource.
+     * @since 5.4.0
+     */
+    public function jsonSerialize()
+    {
+        return $this->response;
     }
 
     /**

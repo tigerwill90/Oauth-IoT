@@ -16,7 +16,7 @@ use \Psr\Http\Message\ServerRequestInterface;
 use \Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 
-final class IntrospectionController
+final class IntrospectionEndpoint
 {
 
     /** @var IntrospectionInterface  */
@@ -47,14 +47,14 @@ final class IntrospectionController
             ->aesEncrypt('abcdef!hij012345', 'AaBbCcDdEe0123Az', false);
 
         $isValidToken =$this->introspection
-            ->injectClaimsChecker(new ClaimsCheckerRules())
+            ->withChecker('standard')
             ->setRequestParameterToVerify('token')
             ->setClaimsToVerify([IntrospectionInterface::CLAIM_EXP, IntrospectionInterface::CLAIM_JTI])
             ->setActiveResponseParameter(['exp'], null, null, ['key' => $encryptedKey])
             ->introspectToken($request, getenv('KEY'), 'oct');
 
         $body = $response->getBody();
-        $body->write($this->introspection->getJsonResponse());
+        $body->write(json_encode($this->introspection, JSON_UNESCAPED_SLASHES));
         $newResponse = $response
             ->withBody($body)
             ->withHeader('content-type', 'application/json');

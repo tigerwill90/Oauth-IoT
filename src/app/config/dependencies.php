@@ -6,18 +6,18 @@ $container = $app->getContainer();
 
 /**
  * @param ContainerInterface $c
- * @return \Oauth\Controllers\IntrospectionController
+ * @return \Oauth\Controllers\IntrospectionEndpoint
  */
-$container[\Oauth\Controllers\IntrospectionController::class] = function (ContainerInterface $c) {
-  return new \Oauth\Controllers\IntrospectionController($c->get('IntrospectionService'), $c->get('debugLogger'), $c->get('AesHelper'));
+$container[\Oauth\Controllers\IntrospectionEndpoint::class] = function (ContainerInterface $c) {
+  return new \Oauth\Controllers\IntrospectionEndpoint($c->get('IntrospectionService'), $c->get('debugLogger'), $c->get('AesHelper'));
 };
 
 /**
  * @param ContainerInterface $c
- * @return \Oauth\Controllers\ConnexionController
+ * @return \Oauth\Controllers\TokenEndpoint
  */
-$container[\Oauth\Controllers\ConnexionController::class] = function (ContainerInterface $c) {
-  return new \Oauth\Controllers\ConnexionController($c->get('JoseHelper'), $c->get('debugLogger'));
+$container[\Oauth\Controllers\TokenEndpoint::class] = function (ContainerInterface $c) {
+  return new \Oauth\Controllers\TokenEndpoint($c->get('JoseHelper'), $c->get('memcached'), $c->get('debugLogger'));
 };
 
 /**
@@ -41,7 +41,15 @@ $container[\Oauth\Controllers\UpdateClientController::class] = function (Contain
  * @return \Oauth\Services\Introspection
  */
 $container['IntrospectionService'] = function (ContainerInterface $c) {
-    return new \Oauth\Services\Introspection($c->get('JoseHelper'), $c->get('AlgorithmManagerHelper'), $c->get('debugLogger'));
+    return new \Oauth\Services\Introspection($c->get('JoseHelper'), $c->get('AlgorithmManagerHelper'), $c->get('ClaimsCheckerManager'), $c->get('debugLogger'));
+};
+
+/**
+ * @return \Oauth\Services\ClaimCheckerManager
+ */
+$container['ClaimsCheckerManager'] = function () {
+    $claimsCheckerManager = new \Oauth\Services\ClaimCheckerManager();
+    return $claimsCheckerManager->add('standard', new \Oauth\Services\ClaimsCheckerRules());
 };
 
 /**
@@ -175,7 +183,18 @@ $container['debugLogger'] = function () {
 };
 
 /**
- * @return PDO
+ * @return Memcached
+ */
+$container['memcached'] = function () {
+    $mc = new Memcached();
+    if (empty($mc->getServerByKey('memcached'))) {
+        $mc->addServer('memcached', 11211);
+    }
+    return $mc;
+};
+
+/**
+ * @return PDO Connexion
  */
 $container['pdo'] = function () {
     $pdo = new PDO('mysql:host=' . getenv('DB_HOST') . ';' . 'dbname=' . getenv('DB_NAME') . ';charset=utf8', getenv('DB_USER'), getenv('DB_PASSWORD'));

@@ -16,7 +16,7 @@ namespace Oauth\Services;
  * @see https://tools.ietf.org/html/rfc7662
  *
  */
-interface IntrospectionInterface
+interface IntrospectionInterface extends \JsonSerializable
 {
 
     public const PARAM_TOKEN = 'token';
@@ -45,12 +45,12 @@ interface IntrospectionInterface
     public const ERROR_MSG = 'invalid request';
 
     /**
-     * Inject a callable class to process verification of claims
+     * Inject a ClaimsCheckerInterface instance to process verification of claims
      *
-     * @param ClaimsCheckerInterface $claimsChecker
+     * @param string $aliasChecker
      * @return IntrospectionInterface
      */
-    public function injectClaimsChecker(ClaimsCheckerInterface $claimsChecker) : IntrospectionInterface;
+    public function withChecker(string $aliasChecker) : IntrospectionInterface;
 
     /**
      * Set claim who MUST be in the token and who need to be verified
@@ -106,11 +106,11 @@ interface IntrospectionInterface
     public function introspectToken(\Psr\Http\Message\ServerRequestInterface $request, string $secretKey, string $keyType) : bool;
 
     /**
-     * Return an appropriate json object response
+     * Return an appropriate response array
      *
-     * @return string
+     * @return array
      */
-    public function getJsonResponse() : string;
+    public function getResponseArray() : array ;
 
     /**
      * Return an array with all invalid claims

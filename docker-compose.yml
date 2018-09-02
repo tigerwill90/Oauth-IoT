@@ -1,7 +1,4 @@
 version: '3'
-networks:
-  app-tier:
-    driver: bridge
 services:
   httpd:
     build:
@@ -24,7 +21,7 @@ services:
     environment:
       VIRTUAL_HOST: ${VIRTUAL_HOST}
     networks:
-      - app-tier
+      - backend
   mysql:
     image: mysql:5.7.22
     container_name: mysql
@@ -36,7 +33,7 @@ services:
     volumes:
       - ./db/mysql:/var/lib/mysql
     networks:
-      - app-tier
+      - backend
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
     container_name: phpmyadmin
@@ -48,11 +45,14 @@ services:
     environment:
       PMA_HOST: mysql
     networks:
-      - app-tier
+      - backend
   memcached:
     image: bitnami/memcached:latest
     container_name: memcached
     ports:
       - 11211:11211
     networks:
-      - app-tier
+      - backend
+networks:
+  backend:
+    driver: bridge
