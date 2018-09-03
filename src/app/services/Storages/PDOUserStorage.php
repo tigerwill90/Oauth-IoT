@@ -33,7 +33,7 @@ class PDOUserStorage implements UserStorageInterface
      * @param $id
      * @return UserInterface
      */
-    public function fetchById(int $id) : UserInterface
+    public function fetch(int $id) : UserInterface
     {
         $sql = 'SELECT use_id AS id, use_username AS username, use_email AS email, use_password AS password, use_refresh_token AS refresh_token_validity FROM users WHERE use_id = ' . $id;
 

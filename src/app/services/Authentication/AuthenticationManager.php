@@ -42,6 +42,8 @@ class AuthenticationManager
     }
 
     /**
+     * RFC 6749
+     * Section 3.1.1 Response type
      * @param ServerRequestInterface $request
      * @return bool
      */

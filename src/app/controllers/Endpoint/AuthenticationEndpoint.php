@@ -36,7 +36,14 @@ class AuthenticationEndpoint
         $this->validatorManager = $validatorManager;
         $this->logger = $logger;
     }
-    
+
+    /**
+     * RFC 6749 Protocol Endpoints
+     * Section 3.1 Authorization Endpoint
+     * @param ServerRequestInterface $request
+     * @param ResponseInterface $response
+     * @return ResponseInterface
+     */
     public function login(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface
     {
         $body = $response->getBody();

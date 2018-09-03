@@ -56,7 +56,7 @@ class PDOClientStorage implements ClientStorageInterface
             $stmt->execute();
             $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
             if (empty($data)) {
-                throw new NoEntityException('No entity found for this client ' . $clientId);
+                throw new NoEntityException('No entity found for this client identification : ' . $clientId);
             }
             $scopes = [];
             $uri = [];

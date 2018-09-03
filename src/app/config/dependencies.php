@@ -181,7 +181,8 @@ $container['LoginQueryParameter'] = function() {
             ->add('client_id', new \Oauth\Services\Validators\Rules\ClientIdentificationRule(true))
             ->add('scope', new \Oauth\Services\Validators\Rules\QScopeRule(true))
             ->add('state', new \Oauth\Services\Validators\Rules\StateRule(true))
-            ->add('redirect_uri', new \Oauth\Services\Validators\Rules\QRedirectUriRule(true));
+            ->add('redirect_uri', new \Oauth\Services\Validators\Rules\QRedirectUriRule(true))
+            ->add('audience', new \Oauth\Services\Validators\Rules\AudienceRule(true));
 };
 
 /**
