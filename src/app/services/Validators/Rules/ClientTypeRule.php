@@ -18,6 +18,6 @@ class ClientTypeRule extends RuleValidator
      */
     public function getValidator(): Validator
     {
-        return Validator::in(['confidential', 'public'])->notBlank();
+        return Validator::in(['confidential', 'public'])->notBlank()->noWhitespace();
     }
 }

@@ -1,9 +1,9 @@
 <?php
 /**
  * Created by PhpStorm.
- * User: Sylvain
- * Date: 02.09.2018
- * Time: 22:31
+ * User: thor
+ * Date: 9/3/18
+ * Time: 3:37 PM
  */
 
 namespace Oauth\Services\Validators\Rules;
@@ -11,7 +11,7 @@ namespace Oauth\Services\Validators\Rules;
 
 use Respect\Validation\Validator;
 
-class QFieldRule extends RuleValidator
+class QRedirectUriRule extends RuleValidator
 {
 
     /**
@@ -20,6 +20,6 @@ class QFieldRule extends RuleValidator
      */
     public function getValidator(): Validator
     {
-        return Validator::create()->alpha('_')->in(['client_secret','client_identification']);
+        return Validator::url();
     }
 }

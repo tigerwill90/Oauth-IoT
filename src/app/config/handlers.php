@@ -11,7 +11,7 @@ use Psr\Http\Message\ResponseInterface;
  */
 $container['errorHandler'] = function (ContainerInterface $c) {
     return function (ServerRequestInterface $request, ResponseInterface $response, Exception $e) use ($c) {
-        $logger = $c->get('debugLogger');
+        $logger = $c->get('DebugLogger');
         $logger->info('Code : ' . $e->getCode() . ' File : ' . $e->getFile() . ' Line : ' . $e->getLine() . ' Message : ' . $e->getMessage() . ' Trace . ' . $e->getTraceAsString());
         $body = $response->getBody();
         $body->write(json_encode(['error' => 'something goes wrong']));

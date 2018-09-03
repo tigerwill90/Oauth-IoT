@@ -1,24 +1,23 @@
 <?php
 /**
  * Created by PhpStorm.
- * User: Sylvain
- * Date: 31.08.2018
- * Time: 18:39
+ * User: thor
+ * Date: 9/3/18
+ * Time: 3:26 PM
  */
 
 namespace Oauth\Services\Validators\Rules;
 
 use Respect\Validation\Validator;
 
-class ClientIdentificationRule extends RuleValidator
+class ResponseTypeRule extends RuleValidator
 {
-
     /**
      * Get a validator instance
      * @return Validator
      */
     public function getValidator(): Validator
     {
-        return Validator::alnum()->notBlank()->length(1, 15)->noWhitespace();
+        return Validator::in(['token', 'code'])->notBlank()->noWhitespace();
     }
 }

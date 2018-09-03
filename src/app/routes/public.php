@@ -14,7 +14,7 @@
 
     $app->post('/introspect', Oauth\Controllers\IntrospectionEndpoint::class);
     $app->get('/authorize', Oauth\Controllers\TokenEndpoint::class);
-    //$app->get('/auth', Callable);
+    $app->get('/auth', \Oauth\Controllers\AuthenticationEndpoint::class . ':login');
     $app->group('/clients', function() {
         $this->post('', \Oauth\Controllers\CreateClientController::class);
         $this->delete('/{clientId}', \Oauth\Controllers\DeleteClientController::class);

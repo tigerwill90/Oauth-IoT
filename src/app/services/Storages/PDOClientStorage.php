@@ -331,19 +331,6 @@ class PDOClientStorage implements ClientStorageInterface
     }
 
     /**
-     * @param $a
-     * @param $b
-     * @return bool
-     */
-    private function arrayEquals(array $a, array $b)  : bool
-    {
-        return (
-            \count($a) === \count($b)
-            && array_diff($a, $b) === array_diff($b, $a)
-        );
-    }
-
-    /**
      * @param string $message
      * @param array $context
      * @return PDOClientStorage

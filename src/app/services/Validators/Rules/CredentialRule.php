@@ -2,15 +2,16 @@
 /**
  * Created by PhpStorm.
  * User: Sylvain
- * Date: 31.08.2018
- * Time: 18:39
+ * Date: 02.09.2018
+ * Time: 22:31
  */
 
 namespace Oauth\Services\Validators\Rules;
 
+
 use Respect\Validation\Validator;
 
-class ClientIdentificationRule extends RuleValidator
+class CredentialRule extends RuleValidator
 {
 
     /**
@@ -19,6 +20,6 @@ class ClientIdentificationRule extends RuleValidator
      */
     public function getValidator(): Validator
     {
-        return Validator::alnum()->notBlank()->length(1, 15)->noWhitespace();
+        return Validator::alpha('_')->in(['client_secret','client_identification'])->noWhitespace();
     }
 }

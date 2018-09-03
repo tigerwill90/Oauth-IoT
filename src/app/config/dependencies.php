@@ -9,7 +9,7 @@ $container = $app->getContainer();
  * @return \Oauth\Controllers\IntrospectionEndpoint
  */
 $container[\Oauth\Controllers\IntrospectionEndpoint::class] = function (ContainerInterface $c) {
-  return new \Oauth\Controllers\IntrospectionEndpoint($c->get('IntrospectionService'), $c->get('debugLogger'), $c->get('AesHelper'));
+    return new \Oauth\Controllers\IntrospectionEndpoint($c->get('IntrospectionService'), $c->get('DebugLogger'), $c->get('AesHelper'));
 };
 
 /**
@@ -17,7 +17,15 @@ $container[\Oauth\Controllers\IntrospectionEndpoint::class] = function (Containe
  * @return \Oauth\Controllers\TokenEndpoint
  */
 $container[\Oauth\Controllers\TokenEndpoint::class] = function (ContainerInterface $c) {
-  return new \Oauth\Controllers\TokenEndpoint($c->get('JoseHelper'), $c->get('memcached'), $c->get('debugLogger'));
+    return new \Oauth\Controllers\TokenEndpoint($c->get('JoseHelper'), $c->get('Memcached'), $c->get('DebugLogger'));
+};
+
+/**
+ * @param ContainerInterface $c
+ * @return \Oauth\Controllers\AuthenticationEndpoint
+ */
+$container[\Oauth\Controllers\AuthenticationEndpoint::class] = function (ContainerInterface $c) {
+    return new \Oauth\Controllers\AuthenticationEndpoint($c->get('AuthenticationService'), $c->get('ViewRender'), $c->get('ValidatorManager'), $c->get('DebugLogger'));
 };
 
 /**
@@ -41,7 +49,7 @@ $container[\Oauth\Controllers\DeleteClientController::class] = function (Contain
  * @return \Oauth\Controllers\UpdateClientController
  */
 $container[\Oauth\Controllers\UpdateClientController::class] = function (ContainerInterface $c) {
-    return new \Oauth\Controllers\UpdateClientController($c->get('ValidatorManager'), $c->get('ClientRegister'), $c->get('debugLogger'));
+    return new \Oauth\Controllers\UpdateClientController($c->get('ValidatorManager'), $c->get('ClientRegister'), $c->get('DebugLogger'));
 };
 
 /**
@@ -49,7 +57,25 @@ $container[\Oauth\Controllers\UpdateClientController::class] = function (Contain
  * @return \Oauth\Services\Introspection
  */
 $container['IntrospectionService'] = function (ContainerInterface $c) {
-    return new \Oauth\Services\Introspection($c->get('JoseHelper'), $c->get('AlgorithmManagerHelper'), $c->get('ClaimsCheckerManager'), $c->get('debugLogger'));
+    return new \Oauth\Services\Introspection($c->get('JoseHelper'), $c->get('AlgorithmManagerHelper'), $c->get('ClaimsCheckerManager'), $c->get('DebugLogger'));
+};
+
+/**
+ * @param ContainerInterface $c
+ * @return \Oauth\Services\Authentication\AuthenticationManager
+ */
+$container['AuthenticationService'] = function (ContainerInterface $c) {
+    $authenticationManager = new \Oauth\Services\Authentication\AuthenticationManager();
+    return $authenticationManager
+            ->add('token', $c->get('ImplicitGrantFlow'));
+};
+
+/**
+ * @param ContainerInterface $c
+ * @return \Oauth\Services\Authentication\ImplicitGrant
+ */
+$container['ImplicitGrantFlow'] = function (ContainerInterface $c) {
+    return new \Oauth\Services\Authentication\ImplicitGrant($c->get('PdoClientStorage'), $c->get('PdoUserStorage'), $c->get('Memcached'));
 };
 
 /**
@@ -57,7 +83,7 @@ $container['IntrospectionService'] = function (ContainerInterface $c) {
  */
 $container['ClaimsCheckerManager'] = function (ContainerInterface $c) {
     $claimsCheckerManager = new \Oauth\Services\ClaimsCheckerManager();
-    return $claimsCheckerManager->add('standard', new \Oauth\Services\ClaimsCheckerRules($c->get('memcached')));
+    return $claimsCheckerManager->add('standard', new \Oauth\Services\ClaimsCheckerRules($c->get('Memcached')));
 };
 
 /**
@@ -65,7 +91,7 @@ $container['ClaimsCheckerManager'] = function (ContainerInterface $c) {
  * @return \Oauth\Services\Helpers\JoseHelper
  */
 $container['JoseHelper'] = function (ContainerInterface $c) {
-    return new \Oauth\Services\Helpers\JoseHelper($c->get('AlgorithmManagerFactory'), $c->get('compressionMethodManager'), $c->get('debugLogger'));
+    return new \Oauth\Services\Helpers\JoseHelper($c->get('AlgorithmManagerFactory'), $c->get('CompressionMethodManager'), $c->get('DebugLogger'));
 };
 
 /**
@@ -88,7 +114,7 @@ $container['AesHelper'] = function () {
  * @return \Oauth\Services\Registrations\ClientRegister
  */
 $container['ClientRegister'] = function (ContainerInterface $c) {
-    return  new \Oauth\Services\Registrations\ClientRegister($c->get('PdoClientStorage'), $c->get('RandomFactory'), $c->get('debugLogger'));
+    return  new \Oauth\Services\Registrations\ClientRegister($c->get('PdoClientStorage'), $c->get('RandomFactory'), $c->get('DebugLogger'));
 };
 
 /**
@@ -96,7 +122,15 @@ $container['ClientRegister'] = function (ContainerInterface $c) {
  * @return \Oauth\Services\Storage\PDOClientStorage
  */
 $container['PdoClientStorage'] = function (ContainerInterface $c) {
-    return new \Oauth\Services\Storage\PDOClientStorage($c->get('pdo'), $c->get('debugLogger'));
+    return new \Oauth\Services\Storage\PDOClientStorage($c->get('Pdo'), $c->get('DebugLogger'));
+};
+
+/**
+ * @param ContainerInterface $c
+ * @return \Oauth\Services\Storage\PDOUserStorage
+ */
+$container['PdoUserStorage'] = function (ContainerInterface $c) {
+    return new \Oauth\Services\Storage\PDOUserStorage($c->get('Pdo'), $c->get('DebugLogger'));
 };
 
 /**
@@ -108,7 +142,8 @@ $container['ValidatorManager'] = function (ContainerInterface $c) {
     return $validatorManager
             ->add('register', [$c->get('ClientParameter')])
             ->add('unregister', [$c->get('ClientAttribute')])
-            ->add('update',[$c->get('ClientAttribute'), $c->get('ClientParameter'), $c->get('ClientQueryParameter')]);
+            ->add('update',[$c->get('ClientAttribute'), $c->get('ClientParameter'), $c->get('ClientQueryParameter')])
+            ->add('login', [$c->get('LoginQueryParameter')]);
 };
 
 /**
@@ -133,7 +168,20 @@ $container['ClientAttribute'] = function () {
 $container['ClientQueryParameter'] = function () {
     $validator = new \Oauth\Services\Validators\QueryValidator();
     return $validator
-            ->add('field', new \Oauth\Services\Validators\Rules\QFieldRule(false));
+            ->add('credentials', new \Oauth\Services\Validators\Rules\CredentialRule(false));
+};
+
+/**
+ * @return \Oauth\Services\Validators\Validator
+ */
+$container['LoginQueryParameter'] = function() {
+    $validator = new \Oauth\Services\Validators\QueryValidator();
+    return $validator
+            ->add('response_type', new \Oauth\Services\Validators\Rules\ResponseTypeRule(true))
+            ->add('client_id', new \Oauth\Services\Validators\Rules\ClientIdentificationRule(true))
+            ->add('scope', new \Oauth\Services\Validators\Rules\QScopeRule(true))
+            ->add('state', new \Oauth\Services\Validators\Rules\StateRule(true))
+            ->add('redirect_uri', new \Oauth\Services\Validators\Rules\QRedirectUriRule(true));
 };
 
 /**
@@ -173,16 +221,20 @@ $container['AlgorithmManagerFactory'] = function () {
 /**
  * @return \Jose\Component\Encryption\Compression\CompressionMethodManager
  */
-$container['compressionMethodManager'] = function () {
+$container['CompressionMethodManager'] = function () {
     return \Jose\Component\Encryption\Compression\CompressionMethodManager::create([
       new \Jose\Component\Encryption\Compression\Deflate()
     ]);
 };
 
+$container['ViewRender'] = function () {
+      return new \Slim\Views\PhpRenderer(__DIR__ . getenv('TEMPLATE_PATH'));
+};
+
 /**
  * @return \Monolog\Logger
  */
-$container['debugLogger'] = function () {
+$container['DebugLogger'] = function () {
   $log = new \Monolog\Logger('oauth_debug');
   $formatter = new \Monolog\Formatter\LineFormatter(
       "[%datetime%] [%level_name%]: %message% %context%\n",
@@ -199,7 +251,7 @@ $container['debugLogger'] = function () {
 /**
  * @return Memcached
  */
-$container['memcached'] = function () {
+$container['Memcached'] = function () {
     $mc = new Memcached();
     if (empty($mc->getServerByKey('memcached'))) {
         $mc->addServer('memcached', 11211);
@@ -210,7 +262,7 @@ $container['memcached'] = function () {
 /**
  * @return PDO Connexion
  */
-$container['pdo'] = function () {
+$container['Pdo'] = function () {
     $pdo = new PDO('mysql:host=' . getenv('DB_HOST') . ';' . 'dbname=' . getenv('DB_NAME') . ';charset=utf8', getenv('DB_USER'), getenv('DB_PASSWORD'));
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     return $pdo;

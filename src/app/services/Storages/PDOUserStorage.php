@@ -14,7 +14,7 @@ use Oauth\Services\Users\UserInterface;
 use PDO;
 use Psr\Log\LoggerInterface;
 
-class PDOUserStorage
+class PDOUserStorage implements UserStorageInterface
 {
     /** @var PDO  */
     private $pdo;

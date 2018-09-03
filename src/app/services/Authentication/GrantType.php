@@ -10,6 +10,7 @@ namespace Oauth\Services\Authentication;
 
 use Oauth\Services\Storage\ClientStorageInterface;
 use Oauth\Services\Storage\UserStorageInterface;
+use Memcached;
 use Psr\Http\Message\ServerRequestInterface;
 
 abstract class GrantType
@@ -20,14 +21,49 @@ abstract class GrantType
     /** @var UserStorageInterface  */
     protected $userStorage;
 
-    public function __construct(ClientStorageInterface $clientStorage, UserStorageInterface $userStorage)
+    /** @var array */
+    protected $errorsMessages = [];
+
+    /** @var Memcached  */
+    protected $mc;
+
+    public function __construct(ClientStorageInterface $clientStorage, UserStorageInterface $userStorage, Memcached $mc)
     {
         $this->clientStorage = $clientStorage;
         $this->userStorage = $userStorage;
+        $this->mc = $mc;
     }
 
-    abstract public function authenticateClient(ServerRequestInterface $request) : bool;
+    /**
+     * Authenticate a client
+     * @param array $queryParameters
+     * @return bool
+     */
+    abstract public function authenticateClient(array $queryParameters) : bool;
 
+    /**
+     * Authenticate a user
+     * @param ServerRequestInterface $request
+     * @return bool
+     */
     abstract public function authenticateUser(ServerRequestInterface $request) : bool;
 
+    /**
+     * @param string $clientId
+     * @return string
+     */
+    public function getStateFromCache(string $clientId) : string
+    {
+        $state = $this->mc->get('auth_state:' . $clientId);
+        $this->mc->delete('auth_state:' . $clientId);
+        return $state;
+    }
+
+    /**
+     * @return array
+     */
+    public function getMessages() : array
+    {
+        return $this->errorsMessages;
+    }
 }

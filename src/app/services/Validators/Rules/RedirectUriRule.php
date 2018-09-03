@@ -18,6 +18,6 @@ class RedirectUriRule extends RuleValidator
      */
     public function getValidator(): Validator
     {
-        return Validator::arrayType()->each(Validator::url()->length(7, 4000))->notEmpty();
+        return Validator::arrayType()->each(Validator::url()->length(7, 4000)->noWhitespace())->notEmpty();
     }
 }

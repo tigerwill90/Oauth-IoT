@@ -18,6 +18,6 @@ class GrantTypeRule extends RuleValidator
      */
     public function getValidator(): Validator
     {
-        return Validator::in(['code', 'implicit'])->notBlank();
+        return Validator::in(['code', 'implicit'])->notBlank()->noWhitespace();
     }
 }
