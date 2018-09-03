@@ -10,6 +10,7 @@ namespace Oauth\Services\Authentication;
 
 use Oauth\Services\Storage\ClientStorageInterface;
 use Oauth\Services\Storage\UserStorageInterface;
+use Psr\Http\Message\ServerRequestInterface;
 
 abstract class GrantType
 {
@@ -25,8 +26,8 @@ abstract class GrantType
         $this->userStorage = $userStorage;
     }
 
-    abstract public function authenticateClient(array $credentials) : bool;
+    abstract public function authenticateClient(ServerRequestInterface $request) : bool;
 
-    abstract public function authenticateUser(string $username, string $password) : bool;
+    abstract public function authenticateUser(ServerRequestInterface $request) : bool;
 
 }
