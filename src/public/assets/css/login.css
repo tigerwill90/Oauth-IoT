@@ -1,0 +1,36 @@
+.demo-card-square.mdl-card {
+    width: 320px;
+    min-height: 450px;
+    height: auto;
+}
+.demo-card-square > .mdl-card__title {
+    color: #fff;
+    background:
+            url('../img/header.jpg') bottom right 15% no-repeat #46B6AC;
+}
+
+.mdl-list__item {
+    width: 300px;
+}
+
+.mdl-card__title {
+    min-height: 100px;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+}
+
+.resource {
+    text-align: center;
+    margin: 10px 0 10px 0;
+}
+
+.grant-right {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    margin: 0 0 20px 0;
+}

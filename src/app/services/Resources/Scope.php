@@ -9,7 +9,7 @@
 namespace Oauth\Services\Resources;
 
 
-class Scope
+class Scope implements ScopeInterface
 {
     /** @var int */
     private $id;
@@ -24,6 +24,9 @@ class Scope
     private $description;
 
     /** @var string */
+    private $method;
+
+    /** @var string */
     private $uri;
 
     public function __construct(array $scope)
@@ -35,6 +38,7 @@ class Scope
         $this->name = $scope['scope_name'];
         $this->description = $scope['scope_description'];
         $this->uri = $scope['scope_uri'];
+        $this->method = $scope['scope_method'];
     }
 
     /**
@@ -127,5 +131,34 @@ class Scope
         return $this;
     }
 
+    /**
+     * @return string
+     */
+    public function getMethod(): string
+    {
+        return $this->method;
+    }
 
+    /**
+     * @param string $method
+     * @return Scope
+     */
+    public function setMethod(string $method): self
+    {
+        $this->method = $method;
+        return $this;
+    }
+
+
+    /**
+     * Specify data which should be serialized to JSON
+     * @link https://php.net/manual/en/jsonserializable.jsonserialize.php
+     * @return mixed data which can be serialized by <b>json_encode</b>,
+     * which is a value of any type other than a resource.
+     * @since 5.4.0
+     */
+    public function jsonSerialize()
+    {
+        // TODO: Implement jsonSerialize() method.
+    }
 }

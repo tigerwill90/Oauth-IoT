@@ -15,7 +15,8 @@
     $dotenv->required('DB_PASSWORD')->notEmpty();
     $dotenv->required('DB_HOST')->notEmpty();
     $dotenv->required('TIMEZONE')->notEmpty();
-    $dotenv->required('TEMPLATE_PATH')->notEmpty();
+    $dotenv->required('TEMPLATE_DIR')->notEmpty();
+    $dotenv->required('CACHE_DIR')->notEmpty();
 
     date_default_timezone_set(getenv('TIMEZONE'));
 

@@ -8,10 +8,21 @@
 
 namespace Oauth\Services\Storage;
 
-
 use Oauth\Services\Resources\ResourceInterface;
+use Oauth\Services\Resources\ScopeInterface;
 
 interface ResourceStorageInterface
 {
-    public function fetchByAudience(string $audience) : ResourceInterface;
+    /**
+     * Return a full representation of a resource with it's respective scope
+     * @param string $audience
+     * @return ResourceInterface
+     */
+    public function fetchByAudience(string $audience): ResourceInterface;
+
+    /**
+     * @param string $service
+     * @return ScopeInterface
+     */
+    public function fetchScopeByService(string $service) : ScopeInterface;
 }

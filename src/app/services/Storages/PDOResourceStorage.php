@@ -9,8 +9,12 @@
 namespace Oauth\Services\Storage;
 
 
+use Oauth\Services\Clients\Client;
 use Oauth\Services\Exceptions\Storage\NoEntityException;
+use Oauth\Services\Resources\Resource;
 use Oauth\Services\Resources\ResourceInterface;
+use Oauth\Services\Resources\Scope;
+use Oauth\Services\Resources\ScopeInterface;
 use Psr\Log\LoggerInterface;
 use PDO;
 
@@ -28,15 +32,20 @@ class PDOResourceStorage implements ResourceStorageInterface
         $this->logger = $logger;
     }
 
+    /**
+     * Return a full representation of a resource with it's respective scope
+     * @param string $audience
+     * @return ResourceInterface
+     */
     public function fetchByAudience(string $audience): ResourceInterface
     {
         $sql =
             '
                 SELECT 
                   res_id AS id, res_identification AS resource_identification, res_secret AS resource_secret, res_audience AS resource_audience, res_registration_date AS resource_registration_date, res_pop_method AS resource_pop_method,
-                   res_sco_service AS scope_service, res_sco_description AS scope_description, res_sco_url AS scope_url, res_sco_name AS scope_name
+                   res_sco_service AS scope_service, res_sco_description AS scope_description, res_sco_uri AS scope_uri, res_sco_name AS scope_name, res_sco_method AS scope_method
                   FROM resources 
-                  JOIN scopes ON res_id = res_sco_res_id
+                  JOIN resources_scopes ON res_id = res_sco_res_id
                   WHERE res_audience = :audience
             ';
 
@@ -48,13 +57,38 @@ class PDOResourceStorage implements ResourceStorageInterface
             if (empty($data)) {
                 throw new NoEntityException('No entity found for this resource : ' . $audience);
             }
-            $temp = [];
-            foreach ($data as $i => $iValue) {
-                $key = substr($iValue, 0, 5);
-                if ($key === 'scope') {
-                    $temp[$i] = $iValue;
-                }
+
+            $scopes = [];
+            foreach ($data as $scope) {
+                $scopes[] = new Scope($scope);
             }
+
+            $resource = new Resource($data[0]);
+            return $resource->setScope($scopes);
+        } catch (\PDOException $e) {
+            throw $e;
+        }
+    }
+
+    /**
+     * @param string $service
+     * @return ScopeInterface
+     */
+    public function fetchScopeByService(string $service) : ScopeInterface
+    {
+        $sql = 'SELECT 
+                  res_sco_id AS id ,res_sco_service AS scope_service, res_sco_description AS scope_description, res_sco_uri AS scope_uri, res_sco_name AS scope_name, res_sco_method AS scope_method 
+                  FROM resources_scopes WHERE res_sco_service = :service';
+
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindParam(':service', $service);
+            $stmt->execute();
+            $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if (empty($data)) {
+                throw new NoEntityException('No entity found for this scope service : ' . $service);
+            }
+            return new Scope($data[0]);
         } catch (\PDOException $e) {
             throw $e;
         }

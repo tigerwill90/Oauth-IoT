@@ -1,9 +1,9 @@
 <?php
 /**
  * Created by PhpStorm.
- * User: thor
- * Date: 9/3/18
- * Time: 3:34 PM
+ * User: Sylvain
+ * Date: 05.09.2018
+ * Time: 00:18
  */
 
 namespace Oauth\Services\Validators\Rules;
@@ -11,7 +11,7 @@ namespace Oauth\Services\Validators\Rules;
 
 use Respect\Validation\Validator;
 
-class StateRule extends RuleValidator
+class UserPasswordRule extends RuleValidator
 {
 
     /**
@@ -20,6 +20,6 @@ class StateRule extends RuleValidator
      */
     public function getValidator(): Validator
     {
-        return Validator::alnum()->noWhitespace()->notBlank();
+        return Validator::notBlank();
     }
 }

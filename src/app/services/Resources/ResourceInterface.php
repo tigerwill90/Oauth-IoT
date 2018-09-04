@@ -9,7 +9,16 @@
 namespace Oauth\Services\Resources;
 
 
-interface ResourceInterface
+interface ResourceInterface extends \JsonSerializable
 {
+    /**
+     * @return ScopeInterface[]
+     */
+    public function getScope(): array;
 
+    /**
+     * @param array $scope
+     * @return ResourceInterface
+     */
+    public function setScope(array $scope): ResourceInterface;
 }

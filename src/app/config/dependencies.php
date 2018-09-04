@@ -65,7 +65,7 @@ $container['IntrospectionService'] = function (ContainerInterface $c) {
  * @return \Oauth\Services\Authentication\AuthenticationManager
  */
 $container['AuthenticationService'] = function (ContainerInterface $c) {
-    $authenticationManager = new \Oauth\Services\Authentication\AuthenticationManager();
+    $authenticationManager = new \Oauth\Services\Authentication\AuthenticationManager($c->get('Memcached'), $c->get('RandomFactory'), $c->get('DebugLogger'));
     return $authenticationManager
             ->add('token', $c->get('ImplicitGrantFlow'));
 };
@@ -75,10 +75,11 @@ $container['AuthenticationService'] = function (ContainerInterface $c) {
  * @return \Oauth\Services\Authentication\ImplicitGrant
  */
 $container['ImplicitGrantFlow'] = function (ContainerInterface $c) {
-    return new \Oauth\Services\Authentication\ImplicitGrant($c->get('PdoClientStorage'), $c->get('PdoUserStorage'), $c->get('Memcached'));
+    return new \Oauth\Services\Authentication\ImplicitGrant($c->get('PdoClientStorage'), $c->get('PdoUserStorage'), $c->get('PdoResourceStorage'), $c->get('DebugLogger'));
 };
 
 /**
+ * @param ContainerInterface $c
  * @return \Oauth\Services\ClaimsCheckerManager
  */
 $container['ClaimsCheckerManager'] = function (ContainerInterface $c) {
@@ -114,7 +115,7 @@ $container['AesHelper'] = function () {
  * @return \Oauth\Services\Registrations\ClientRegister
  */
 $container['ClientRegister'] = function (ContainerInterface $c) {
-    return  new \Oauth\Services\Registrations\ClientRegister($c->get('PdoClientStorage'), $c->get('RandomFactory'), $c->get('DebugLogger'));
+    return  new \Oauth\Services\Registrations\ClientRegister($c->get('PdoClientStorage'), $c->get('PdoResourceStorage'), $c->get('RandomFactory'), $c->get('DebugLogger'));
 };
 
 /**
@@ -135,6 +136,14 @@ $container['PdoUserStorage'] = function (ContainerInterface $c) {
 
 /**
  * @param ContainerInterface $c
+ * @return \Oauth\Services\Storage\PDOResourceStorage
+ */
+$container['PdoResourceStorage'] = function (ContainerInterface $c) {
+    return new \Oauth\Services\Storage\PDOResourceStorage($c->get('Pdo'), $c->get('DebugLogger'));
+};
+
+/**
+ * @param ContainerInterface $c
  * @return \Oauth\Services\Validators\ValidatorManagerInterface
  */
 $container['ValidatorManager'] = function (ContainerInterface $c) {
@@ -143,7 +152,8 @@ $container['ValidatorManager'] = function (ContainerInterface $c) {
             ->add('register', [$c->get('ClientParameter')])
             ->add('unregister', [$c->get('ClientAttribute')])
             ->add('update',[$c->get('ClientAttribute'), $c->get('ClientParameter'), $c->get('ClientQueryParameter')])
-            ->add('login', [$c->get('LoginQueryParameter')]);
+            ->add('sign', [$c->get('SignQueryParameter')])
+            ->add('login', [$c->get('LoginParameter')]);
 };
 
 /**
@@ -174,15 +184,20 @@ $container['ClientQueryParameter'] = function () {
 /**
  * @return \Oauth\Services\Validators\Validator
  */
-$container['LoginQueryParameter'] = function() {
+$container['SignQueryParameter'] = function () {
     $validator = new \Oauth\Services\Validators\QueryValidator();
     return $validator
-            ->add('response_type', new \Oauth\Services\Validators\Rules\ResponseTypeRule(true))
             ->add('client_id', new \Oauth\Services\Validators\Rules\ClientIdentificationRule(true))
-            ->add('scope', new \Oauth\Services\Validators\Rules\QScopeRule(true))
-            ->add('state', new \Oauth\Services\Validators\Rules\StateRule(true))
             ->add('redirect_uri', new \Oauth\Services\Validators\Rules\QRedirectUriRule(true))
             ->add('audience', new \Oauth\Services\Validators\Rules\AudienceRule(true));
+};
+
+$container['LoginParameter'] = function () {
+    $validator = new \Oauth\Services\Validators\ParameterValidator();
+    return $validator
+            ->add('username', new \Oauth\Services\Validators\Rules\UserNameRule(true))
+            ->add('scope', new \Oauth\Services\Validators\Rules\ScopeRule(false))
+            ->add('password', new \Oauth\Services\Validators\Rules\UserPasswordRule(true));
 };
 
 /**
@@ -228,8 +243,16 @@ $container['CompressionMethodManager'] = function () {
     ]);
 };
 
-$container['ViewRender'] = function () {
-      return new \Slim\Views\PhpRenderer(__DIR__ . getenv('TEMPLATE_PATH'));
+$container['ViewRender'] = function (ContainerInterface $c) {
+      $view = new \Slim\Views\Twig(__DIR__ . getenv('TEMPLATE_DIR'), [
+          'cache' => false // __DIR__ . getenv('CACHE_DIR')
+      ]);
+
+    // Instantiate and add Slim specific extension
+    $basePath = rtrim(str_ireplace('index.php', '', $c->get('request')->getUri()->getBasePath()), '/');
+    $view->addExtension(new Slim\Views\TwigExtension($c->get('router'), $basePath));
+
+    return $view;
 };
 
 /**

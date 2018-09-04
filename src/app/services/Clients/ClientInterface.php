@@ -30,6 +30,11 @@ interface ClientInterface extends \JsonSerializable
     public function getClientIdentification() : string ;
 
     /**
+     * @return string
+     */
+    public function getClientName() : string;
+
+    /**
      * @param string $registrationDate
      * @return ClientInterface
      */
@@ -41,15 +46,37 @@ interface ClientInterface extends \JsonSerializable
      */
     public function setRegistrationDate(\DateTime $date) : ClientInterface;
 
+    /**
+     * @return string
+     */
     public function getRegistrationDate() : string;
 
+    /**
+     * @return array
+     */
     public function getRedirectUri() : array;
 
+    /**
+     * @param array $redirectUri
+     * @return ClientInterface
+     */
     public function setRedirectUri(array $redirectUri) : ClientInterface;
 
+    /**
+     * @param array $scope
+     * @return ClientInterface
+     */
     public function setScope(array $scope) : ClientInterface;
 
+    /**
+     * @return array
+     */
     public function getScope() : array;
+
+    /**
+     * @return string
+     */
+    public function getGrantType() : string;
 
     /**
      * Return an array with registration response details

@@ -1,16 +1,17 @@
 <?php
 /**
  * Created by PhpStorm.
- * User: thor
- * Date: 9/3/18
- * Time: 3:26 PM
+ * User: Sylvain
+ * Date: 05.09.2018
+ * Time: 00:08
  */
 
 namespace Oauth\Services\Validators\Rules;
 
+
 use Respect\Validation\Validator;
 
-class ResponseTypeRule extends RuleValidator
+class UserNameRule extends RuleValidator
 {
     /**
      * Get a validator instance
@@ -18,6 +19,6 @@ class ResponseTypeRule extends RuleValidator
      */
     public function getValidator(): Validator
     {
-        return Validator::in(['token', 'code'])->notBlank()->noWhitespace();
+        return Validator::notBlank();
     }
 }

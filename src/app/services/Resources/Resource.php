@@ -9,7 +9,7 @@
 namespace Oauth\Services\Resources;
 
 
-class Resource
+class Resource implements ResourceInterface
 {
     /** @var int */
     private $id;
@@ -164,11 +164,22 @@ class Resource
      * @param ScopeInterface[] $scope
      * @return Resource
      */
-    public function setScope(array $scope): self
+    public function setScope(array $scope): ResourceInterface
     {
         $this->scope = $scope;
         return $this;
     }
 
 
+    /**
+     * Specify data which should be serialized to JSON
+     * @link https://php.net/manual/en/jsonserializable.jsonserialize.php
+     * @return mixed data which can be serialized by <b>json_encode</b>,
+     * which is a value of any type other than a resource.
+     * @since 5.4.0
+     */
+    public function jsonSerialize()
+    {
+        // TODO: Implement jsonSerialize() method.
+    }
 }

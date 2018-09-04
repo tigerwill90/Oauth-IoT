@@ -14,7 +14,10 @@
 
     $app->post('/introspect', Oauth\Controllers\IntrospectionEndpoint::class);
     $app->get('/authorize', Oauth\Controllers\TokenEndpoint::class);
-    $app->get('/auth', \Oauth\Controllers\AuthenticationEndpoint::class . ':login');
+    $app->group('/auth', function () {
+        $this->get('', \Oauth\Controllers\AuthenticationEndpoint::class . ':sign');
+        $this->post('', \Oauth\Controllers\AuthenticationEndpoint::class . ':login')->setName('auth');
+    });
     $app->group('/clients', function() {
         $this->post('', \Oauth\Controllers\CreateClientController::class);
         $this->delete('/{clientId}', \Oauth\Controllers\DeleteClientController::class);
