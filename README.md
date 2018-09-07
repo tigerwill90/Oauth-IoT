@@ -34,5 +34,5 @@ make static
 ### Reset
 You can reset the whole project with `make clean` (without logs and db) or `make mrproper`
 
-###
-Version v0.4-dev
+### Version
+v0.4-dev

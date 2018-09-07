@@ -21,4 +21,14 @@ interface ResourceInterface extends \JsonSerializable
      * @return ResourceInterface
      */
     public function setScope(array $scope): ResourceInterface;
+
+    /**
+     * @return string
+     */
+    public function getPopMethod(): string;
+
+    /**
+     * @return string
+     */
+    public function getAudience(): string;
 }

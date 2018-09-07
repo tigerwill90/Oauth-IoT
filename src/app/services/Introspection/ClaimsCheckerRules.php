@@ -33,7 +33,7 @@ class ClaimsCheckerRules implements ClaimsCheckerInterface
      */
     public function verifyAud(array $claims) : bool
     {
-        return $claims['aud'] === 'iot_a';
+        return $claims['aud'] === 'iot_1';
     }
 
     public function verifyIss(array $claims) : bool

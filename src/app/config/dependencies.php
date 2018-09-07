@@ -9,7 +9,7 @@ $container = $app->getContainer();
  * @return \Oauth\Controllers\IntrospectionEndpoint
  */
 $container[\Oauth\Controllers\IntrospectionEndpoint::class] = function (ContainerInterface $c) {
-    return new \Oauth\Controllers\IntrospectionEndpoint($c->get('IntrospectionService'), $c->get('DebugLogger'), $c->get('AesHelper'));
+    return new \Oauth\Controllers\IntrospectionEndpoint($c->get('IntrospectionService'), $c->get('Memcached'), $c->get('AesHelper'), $c->get('DebugLogger'));
 };
 
 /**
@@ -62,10 +62,18 @@ $container['IntrospectionService'] = function (ContainerInterface $c) {
 
 /**
  * @param ContainerInterface $c
- * @return \Oauth\Services\Authentication\AuthenticationManager
+ * @return \Oauth\Services\Token\TokenManager
+ */
+$container['TokenManager'] = function (ContainerInterface $c) {
+    return new \Oauth\Services\Token\TokenManager($c->get('Memcached'), $c->get('RandomFactory'), $c->get('JoseHelper'), $c->get('DebugLogger'));
+};
+
+/**
+ * @param ContainerInterface $c
+ * @return \Oauth\Services\Authentication\AuthorizationManager
  */
 $container['AuthenticationService'] = function (ContainerInterface $c) {
-    $authenticationManager = new \Oauth\Services\Authentication\AuthenticationManager($c->get('Memcached'), $c->get('RandomFactory'), $c->get('DebugLogger'));
+    $authenticationManager = new \Oauth\Services\Authentication\AuthorizationManager($c->get('Memcached'), $c->get('DebugLogger'));
     return $authenticationManager
             ->add('token', $c->get('ImplicitGrantFlow'));
 };
@@ -75,7 +83,7 @@ $container['AuthenticationService'] = function (ContainerInterface $c) {
  * @return \Oauth\Services\Authentication\ImplicitGrant
  */
 $container['ImplicitGrantFlow'] = function (ContainerInterface $c) {
-    return new \Oauth\Services\Authentication\ImplicitGrant($c->get('PdoClientStorage'), $c->get('PdoUserStorage'), $c->get('PdoResourceStorage'), $c->get('DebugLogger'));
+    return new \Oauth\Services\Authentication\ImplicitGrant($c->get('PdoClientStorage'), $c->get('PdoUserStorage'), $c->get('PdoResourceStorage'), $c->get('RandomFactory'), $c->get('TokenManager'), $c->get('DebugLogger'));
 };
 
 /**
@@ -188,16 +196,21 @@ $container['SignQueryParameter'] = function () {
     $validator = new \Oauth\Services\Validators\QueryValidator();
     return $validator
             ->add('client_id', new \Oauth\Services\Validators\Rules\ClientIdentificationRule(true))
-            ->add('redirect_uri', new \Oauth\Services\Validators\Rules\QRedirectUriRule(true))
+            ->add('redirect_uri', new \Oauth\Services\Validators\Rules\QRedirectUriRule(false))
             ->add('audience', new \Oauth\Services\Validators\Rules\AudienceRule(true));
 };
 
+/**
+ * @return \Oauth\Services\Validators\Validator
+ */
 $container['LoginParameter'] = function () {
     $validator = new \Oauth\Services\Validators\ParameterValidator();
     return $validator
             ->add('username', new \Oauth\Services\Validators\Rules\UserNameRule(true))
             ->add('scope', new \Oauth\Services\Validators\Rules\ScopeRule(false))
-            ->add('password', new \Oauth\Services\Validators\Rules\UserPasswordRule(true));
+            ->add('password', new \Oauth\Services\Validators\Rules\UserPasswordRule(true))
+            ->add('unique_identifier', new \Oauth\Services\Validators\Rules\TokenRule(true))
+            ->add('token_authenticity', new \Oauth\Services\Validators\Rules\TokenRule(true));
 };
 
 /**

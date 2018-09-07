@@ -11,5 +11,5 @@ namespace Oauth\Services\Users;
 
 interface UserInterface extends \JsonSerializable
 {
-
+    public function getPassword(): string;
 }

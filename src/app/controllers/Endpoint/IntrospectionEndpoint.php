@@ -11,7 +11,7 @@ namespace Oauth\Controllers;
 use Jose\Component\Core\JWK;
 use Jose\Component\Core\JWKSet;
 use Oauth\Services\Helpers\AesHelperInterface;
-use Oauth\Services\ClaimsCheckerRules;
+use Memcached;
 use Oauth\Services\IntrospectionInterface;
 use phpseclib\Crypt\AES;
 use \Psr\Http\Message\ServerRequestInterface;
@@ -24,16 +24,20 @@ final class IntrospectionEndpoint
     /** @var IntrospectionInterface  */
     private $introspection;
 
+    /** @var Memcached  */
+    private $mc;
+
     /** @var LoggerInterface  */
     private $logger;
 
     /** @var  AesHelperInterface*/
     private $aesHelper;
 
-    public function __construct(IntrospectionInterface $introspection, LoggerInterface $logger, AesHelperInterface $aesHelper)
+    public function __construct(IntrospectionInterface $introspection, Memcached $mc, AesHelperInterface $aesHelper, LoggerInterface $logger = null)
     {
         $this->introspection = $introspection;
         $this->logger = $logger;
+        $this->mc = $mc;
         $this->aesHelper = $aesHelper;
     }
 
@@ -44,20 +48,12 @@ final class IntrospectionEndpoint
      */
     public function __invoke(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface
     {
+
+        $jwkSet = $this->mc->get('iot_1');
+
         $encryptedKey = $this->aesHelper
             ->setMode(AES::MODE_ECB)
             ->aesEncrypt('abcdef!hij012345', 'AaBbCcDdEe0123Az', false);
-
-        $jwk = JWK::create([
-            'kty' => 'oct',
-            'k' => getenv('KEY'),
-            'alg' => 'HS256',
-            'use' => 'sig',
-            'enc' => 'A256CBC-HS512',
-            'kid' => '12345'
-        ]);
-
-        $jwkSet = JWKSet::createFromKeys([$jwk]);
 
         $isValidToken =$this->introspection
             ->withChecker('standard')

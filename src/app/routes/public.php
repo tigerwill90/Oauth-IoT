@@ -29,7 +29,7 @@
      */
     $app->post('/keys', function(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface {
 
-      // HTTP AuthenticationManager
+      // HTTP AuthorizationManager
       $headers = $request->getHeader('HTTP_AUTHORIZATION');
       error_log('headers : ' . print_r($request->getHeaders(), true));
       if (isset($headers[0])) {

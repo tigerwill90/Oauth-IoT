@@ -126,7 +126,6 @@ class JoseHelper implements JoseHelperInterface
             $jose = $this->createJweBuilder($this->createAlgorithmManager(array($this->jwk->get('alg'))), $this->createAlgorithmManager(array($this->jwk->get('enc'))))
                 ->create()
                 ->withPayload($encodedPayload)
-                // TODO kid
                 ->withSharedProtectedHeader([
                     'alg' => $this->jwk->get('alg'),
                     'enc' => $this->jwk->get('enc'),

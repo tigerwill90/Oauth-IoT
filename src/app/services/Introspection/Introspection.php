@@ -12,6 +12,7 @@ use Jose\Component\Core\JWKSet;
 use Oauth\Services\Helpers\AlgorithmManagerHelperInterface;
 use Oauth\Services\Helpers\JoseHelperInterface;
 use Psr\Log\LoggerInterface;
+use Memcached;
 
 class Introspection implements IntrospectionInterface
 {
@@ -86,6 +87,7 @@ class Introspection implements IntrospectionInterface
         $this->joseHelper = $joseHelper;
         $this->algorithmHelper = $algorithmHelper;
         $this->claimsCheckerManager = $claimCheckerManager;
+        $this->mc = $mc;
         $this->logger = $logger;
     }
 

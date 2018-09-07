@@ -12,5 +12,15 @@ use Oauth\Services\Users\UserInterface;
 
 interface UserStorageInterface
 {
+    /**
+     * @param int $id
+     * @return UserInterface
+     */
     public function fetch(int $id) : UserInterface;
+
+    /**
+     * @param string $identity
+     * @return UserInterface
+     */
+    public function fetchByUsername(string $identity) : UserInterface;
 }

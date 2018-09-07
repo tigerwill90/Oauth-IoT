@@ -50,6 +50,30 @@ class PDOUserStorage implements UserStorageInterface
         }
     }
 
+    /**
+     * @param string $identity
+     * @return UserInterface
+     */
+    public function fetchByUsername(string $identity) : UserInterface
+    {
+        $sql = 'SELECT use_id AS id, use_username AS username, use_email AS email, use_password AS password, use_refresh_token AS refresh_token_validity FROM users WHERE use_username = :emailOrUsername OR use_email = :emailOrUsername';
+
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindParam('emailOrUsername', $identity);
+            $stmt->execute();
+            $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if (empty($data)) {
+                throw new NoEntityException('No entity found for this user');
+            }
+            return new User($data[0]);
+        } catch (\PDOException $e) {
+            throw $e;
+        }
+
+
+    }
+
     private function log(string $message, array $context = []) : self
     {
         if (null !== $this->logger) {

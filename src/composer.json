@@ -2,9 +2,6 @@
   "name": "Oauth2.0 server",
   "description": "Slim 3 skeleton - authentication - authorization",
   "type": "project",
-  "config": {
-    "optimize-autoloader": true
-  },
   "keywords": [
       "slim",
       "api",
@@ -41,7 +38,6 @@
     "monolog/monolog": "^1.23",
     "respect/validation": "^1.1",
     "ircmaxell/random-lib": "^1.2",
-    "slim/php-view": "^2.2",
     "slim/twig-view": "^2.4"
   },
   "require-dev" : {

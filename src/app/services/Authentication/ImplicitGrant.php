@@ -9,54 +9,46 @@
 namespace Oauth\Services\Authentication;
 
 use Oauth\Services\Exceptions\Storage\NoEntityException;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use Memcached;
 
-class ImplicitGrant extends GrantType
+class ImplicitGrant extends AuthorizationGrantType
 {
     /**
-     * @param ServerRequestInterface $request
+     * @param array $queryParameters
      * @return bool
      * @throws NoRedirectErrorException
      */
-    public function validateRequest(ServerRequestInterface $request): bool
+    public function validateRequest(array $queryParameters): bool
     {
-        $queryParameters = $request->getQueryParams();
-        // Check redirect_uri
-        if (!\in_array($queryParameters['redirect_uri'], $this->client->getRedirectUri(), true)) {
-            // RFC 6749 4.2.2.1 error response without redirect
-            throw new NoRedirectErrorException('This redirect uri is not configured for this client');
-        }
-
-        $this->redirectUriTarget = $queryParameters['redirect_uri'];
+        $this->grantMethod = $queryParameters['response_type'];
 
         if (null === $queryParameters['state']) {
-            $this->errorsMessages['type'] = 'invalid_request';
-            $this->errorsMessages['description'] = 'State parameter is missing';
+            $this->errorsMessages['error'] = 'invalid_request';
+            $this->errorsMessages['error_description'] = 'State parameter is missing';
             return false;
         }
 
         if (!ctype_alnum($queryParameters['state'])) {
-            $this->errorsMessages['type'] = 'invalid_request';
-            $this->errorsMessages['description'] = 'State parameter must be an alphanumeric string';
+            $this->errorsMessages['error'] = 'invalid_request';
+            $this->errorsMessages['error_description'] = 'State parameter must be an alphanumeric string';
             return false;
         }
+
+        $this->state = $queryParameters['state'];
 
         $queryScope = explode(' ', $queryParameters['scope']);
         $scopeOut = array_diff($queryScope,$this->client->getScope());
         $correctedScope = array_diff($queryScope, $scopeOut);
         if (!empty($scopeOut)) {
-            $this->errorsMessages['type'] = 'invalid_scope';
-            $this->errorsMessages['description'] = 'This client have no access for this scope element ' . implode('&', $scopeOut);
-            $this->errorsMessages['state'] = $queryParameters['state'];
+            $this->errorsMessages['error'] = 'invalid_scope';
+            $this->errorsMessages['error_description'] = 'This client have no access for this scope element ' . implode('&', $scopeOut);
+            $this->errorsMessages['state'] = $this->state;
             return false;
         }
 
         if ($this->client->getGrantType() !== $queryParameters['response_type']) {
-            $this->errorsMessages['type'] = 'unauthorized_client';
-            $this->errorsMessages['description'] = 'This client is not authorized to request an access token using ' . $queryParameters['response_type'] . 'method';
-            $this->errorsMessages['state'] = $queryParameters['state'];
+            $this->errorsMessages['error'] = 'unauthorized_client';
+            $this->errorsMessages['error_description'] = 'This client is not authorized to request an access token using ' . $queryParameters['response_type'] . 'method';
+            $this->errorsMessages['state'] = $this->state;
             return false;
         }
 
@@ -64,6 +56,7 @@ class ImplicitGrant extends GrantType
             // allow maybe more than one audience
             $this->resource = $this->resourceStorage->fetchByAudience($queryParameters['audience']);
             $scopes = $this->resource->getScope();
+            // delete not needed scope
             foreach ($scopes as $i =>  $scope) {
                 if (!\in_array($scope->getService(), $correctedScope, true)) {
                     unset($scopes[$i]);
@@ -79,49 +72,47 @@ class ImplicitGrant extends GrantType
     }
 
     /**
-     * Authenticate a user
-     * @param ServerRequestInterface $request
-     * @param ResponseInterface $response
-     * @return ResponseInterface
+     * RFC 6749
+     * Section 3.1.2 Redirection endpoint and url encoding style
+     * @param array $cache
+     * @return string
+     * @throws \Exception
      */
-    public function authenticateUser(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface
+    public function getQueryResponse(array $cache): string
     {
-        $params = $request->getParsedBody();
+        $resource = $cache['resource'];
+        $this->tokenManager->createKeySet($resource);
+
+        $scopes = [];
+        foreach ($resource->getScope() as $scope) {
+            $scopes[] = $scope->getService();
+        }
+
+        $queryResponse = [
+            'access_token' => $this->tokenManager->getAccessToken(),
+            'token_type' => 'JWT',
+            'expires_in' => 1000,
+            'scope' => implode('+', $scopes),
+            'shared_key' => $this->tokenManager->getSharedKey(),
+            'state' => $cache['state']
+        ];
+
+        return http_build_query($queryResponse, null, '&', PHP_QUERY_RFC3986);
     }
 
     /**
-     * @param ServerRequestInterface $request
-     * @param Memcached $mc
-     * @param string $uniqueIdentifier
-     * @param string $tokenAuthenticity
-     * @return ImplicitGrant
-     */
-    public function cacheAuthenticationData(ServerRequestInterface $request, Memcached $mc, string $uniqueIdentifier, string $tokenAuthenticity) : GrantType
-    {
-        $queryParameters = $request->getQueryParams();
-        // Cache data
-        $mc->add($uniqueIdentifier, [
-            'state' => $queryParameters['state'],
-            'token_authenticity' => $tokenAuthenticity,
-            'client' => $this->client,
-            'resource' => $this->resource,
-            'grant_method' => $queryParameters['response_type']
-        ], self::CACHING_TIME);
-        return $this;
-    }
-
-    /**
-     * @param ServerRequestInterface $request
-     * @return bool
+     * @param array $queryParameters
+     * @return AuthorizationGrantType
      * @throws NoRedirectErrorException
      */
-    public function invalidGrantType(ServerRequestInterface $request): bool
+    public function invalidGrantType(array $queryParameters): AuthorizationGrantType
     {
         try {
-            parent::authenticateClient($request);
-            return parent::validateRequest($request);
+            parent::authenticateClient($queryParameters);
+            parent::validateRedirectUri($queryParameters);
         } catch (NoRedirectErrorException $e) {
             throw $e;
         }
+        return $this;
     }
 }
