@@ -32,6 +32,18 @@ class Resource implements ResourceInterface
     /** @var ScopeInterface[] */
     private $scope;
 
+    /** @var int */
+    private $keySize;
+
+    /** @var string */
+    private $sharedKeyAlgorithm;
+
+    /** @var bool */
+    private $tls;
+
+    /** @var mixed  */
+    private $transmissionAlgorithm;
+
     public  function __construct(array $resource)
     {
         if (!empty($resource['id'])) {
@@ -42,6 +54,10 @@ class Resource implements ResourceInterface
         $this->audience = $resource['resource_audience'];
         $this->registrationDate = new \DateTime($resource['resource_registration_date']);
         $this->popMethod = $resource['resource_pop_method'];
+        $this->keySize = (int)$resource['key_size'];
+        $this->sharedKeyAlgorithm = $resource['shared_key_algorithm'];
+        $this->tls = (bool)$resource['tls'];
+        $this->transmissionAlgorithm = $resource['transmission_algorithm'];
     }
 
     /**
@@ -169,6 +185,79 @@ class Resource implements ResourceInterface
         $this->scope = $scope;
         return $this;
     }
+
+    /**
+     * @return int
+     */
+    public function getKeySize(): int
+    {
+        return $this->keySize;
+    }
+
+    /**
+     * @param int $keySize
+     * @return Resource
+     */
+    public function setKeySize(int $keySize): self
+    {
+        $this->keySize = $keySize;
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getSharedKeyAlgorithm(): string
+    {
+        return $this->sharedKeyAlgorithm;
+    }
+
+    /**
+     * @param string $sharedKeyAlgorithm
+     * @return Resource
+     */
+    public function setSharedKeyAlgorithm(string $sharedKeyAlgorithm): self
+    {
+        $this->sharedKeyAlgorithm = $sharedKeyAlgorithm;
+        return $this;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isTls(): bool
+    {
+        return $this->tls;
+    }
+
+    /**
+     * @param bool $tls
+     * @return Resource
+     */
+    public function setTls(bool $tls): self
+    {
+        $this->tls = $tls;
+        return $this;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getTransmissionAlgorithm()
+    {
+        return $this->transmissionAlgorithm;
+    }
+
+    /**
+     * @param mixed $transmissionAlgorithm
+     * @return Resource
+     */
+    public function setTransmissionAlgorithm($transmissionAlgorithm): self
+    {
+        $this->transmissionAlgorithm = $transmissionAlgorithm;
+        return $this;
+    }
+
 
 
     /**

@@ -8,10 +8,15 @@
 
 namespace Oauth\Services\Authentication;
 
+use Jose\Component\Core\JWK;
+use Jose\Component\Core\JWKSet;
+use Memcached;
 use Oauth\Services\Exceptions\Storage\NoEntityException;
 
 class ImplicitGrant extends AuthorizationGrantType
 {
+    private const EXPIRATION = 86399;
+
     /**
      * @param array $queryParameters
      * @return bool
@@ -75,27 +80,103 @@ class ImplicitGrant extends AuthorizationGrantType
      * RFC 6749
      * Section 3.1.2 Redirection endpoint and url encoding style
      * @param array $cache
+     * @param array $params
+     * @param Memcached $mc
      * @return string
      * @throws \Exception
      */
-    public function getQueryResponse(array $cache): string
+    public function getQueryResponse(array $cache, array $params, Memcached $mc): string
     {
         $resource = $cache['resource'];
-        $this->tokenManager->createKeySet($resource);
 
-        $scopes = [];
-        foreach ($resource->getScope() as $scope) {
-            $scopes[] = $scope->getService();
+        // TODO validate : avoid duplicating kid
+        $kid = $this->generator->generateString(4, self::TOKEN_CHAR_GEN);
+
+        // create KEYSet
+        $sharedKey = JWK::create([
+            'alg' => $resource->getSharedKeyAlgorithm(),
+            'kty' => 'oct',
+            'kid' => $kid . '-s',
+            'k' => $this->generator->generateString($resource->getKeySize(), self::TOKEN_CHAR_GEN),
+            'key_ops' => ['encrypt', 'decrypt']
+        ]);
+
+        $accessTokenKey = JWK::create([
+            'alg' => 'HS256',
+            'kty' => 'oct',
+            'use' => 'sig',
+            'k' => $this->generator->generateString(32, self::TOKEN_CHAR_GEN),
+            'kid' => $kid,
+        ]);
+
+        $jwkSet = (object)$mc->get($resource->getAudience());
+
+        $jweKey = null;
+        if ($resource->getPopMethod() !== 'introspection') {
+            $jweKey = JWK::create([
+                'alg' => 'A256KW',
+                'enc' => 'A256CBC-HS512',
+                'kty' => 'oct',
+                'use' => 'enc',
+                'k' => $resource->getResourceSecret(),
+                'kid' => $kid . '-j'
+            ]);
+        }
+
+        if (empty($jwkSet)) {
+            if (null !== $jweKey) {
+                $jwkSet = JWKSet::createFromKeys([$sharedKey, $accessTokenKey, $jweKey]);
+            } else {
+                $jwkSet = JWKSet::createFromKeys([$sharedKey, $accessTokenKey]);
+            }
+            $mc->set($resource->getAudience(), $jwkSet, self::EXPIRATION);
+        } else {
+            if (null !== $jweKey) {
+                $jwkSet = $jwkSet->with($sharedKey)->with($accessTokenKey)->with($jweKey);
+            } else {
+                $jwkSet = $jwkSet->with($sharedKey)->with($accessTokenKey);
+            }
+            $mc->replace($resource->getAudience(), $jwkSet, self::EXPIRATION);
+        }
+
+        $payload = [
+            'exp' => time() + self::EXPIRATION, // 23:59:59
+            'aud' => $resource->getAudience()
+        ];
+
+        if (null !== $jweKey) {
+            try {
+                $payload['cnf'] = $this->joseHelper
+                    ->setJwk($jweKey)
+                    ->createToken($sharedKey->all());
+            } catch (\Exception $e) {
+                throw $e;
+            }
+        }
+
+        if (null !== $params['scope']) {
+            $payload['scope'] = implode(' ', $params['scope']);
+        }
+
+        try {
+            $jwt = $this->joseHelper
+                ->setJwk($accessTokenKey)
+                ->createToken($payload);
+        } catch (\Exception $e) {
+            throw $e;
         }
 
         $queryResponse = [
-            'access_token' => $this->tokenManager->getAccessToken(),
+            'access_token' => $jwt,
             'token_type' => 'JWT',
-            'expires_in' => 1000,
-            'scope' => implode('+', $scopes),
-            'shared_key' => $this->tokenManager->getSharedKey(),
+            'expires_in' => self::EXPIRATION,
+            'scope' => implode('+', $params['scope']),
             'state' => $cache['state']
         ];
+
+        if (null === $jweKey) {
+            $queryResponse['shared_key'] = $sharedKey;
+        }
 
         return http_build_query($queryResponse, null, '&', PHP_QUERY_RFC3986);
     }

@@ -34,6 +34,45 @@ class PDOResourceStorage implements ResourceStorageInterface
 
     /**
      * Return a full representation of a resource with it's respective scope
+     * @param string $identification
+     * @return ResourceInterface
+     */
+    public function fetchByResourceIdentification(string $identification) : ResourceInterface
+    {
+        $sql =
+            '
+                SELECT 
+                   res_id AS id, res_identification AS resource_identification, res_secret AS resource_secret, res_audience AS resource_audience, res_registration_date AS resource_registration_date,
+                   res_pop_method AS resource_pop_method, res_key_size AS key_size, res_algorithm_encryption AS shared_key_algorithm, res_tls AS tls, res_transmission_algorithm AS transmission_algorithm,
+                   res_sco_service AS scope_service, res_sco_description AS scope_description, res_sco_uri AS scope_uri, res_sco_name AS scope_name, res_sco_method AS scope_method
+                  FROM resources 
+                  JOIN resources_scopes ON res_id = res_sco_res_id
+                  WHERE res_identification = :identification
+            ';
+
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindParam(':identification', $identification);
+            $stmt->execute();
+            $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if (empty($data)) {
+                throw new NoEntityException('No entity found for this resource identification : ' . $identification);
+            }
+
+            $scopes = [];
+            foreach ($data as $scope) {
+                $scopes[] = new Scope($scope);
+            }
+
+            $resource = new Resource($data[0]);
+            return $resource->setScope($scopes);
+        } catch (\PDOException $e) {
+            throw $e;
+        }
+    }
+
+    /**
+     * Return a full representation of a resource with it's respective scope
      * @param string $audience
      * @return ResourceInterface
      */
@@ -42,7 +81,8 @@ class PDOResourceStorage implements ResourceStorageInterface
         $sql =
             '
                 SELECT 
-                  res_id AS id, res_identification AS resource_identification, res_secret AS resource_secret, res_audience AS resource_audience, res_registration_date AS resource_registration_date, res_pop_method AS resource_pop_method,
+                   res_id AS id, res_identification AS resource_identification, res_secret AS resource_secret, res_audience AS resource_audience, res_registration_date AS resource_registration_date,
+                   res_pop_method AS resource_pop_method, res_key_size AS key_size, res_algorithm_encryption AS shared_key_algorithm, res_tls AS tls, res_transmission_algorithm AS transmission_algorithm,
                    res_sco_service AS scope_service, res_sco_description AS scope_description, res_sco_uri AS scope_uri, res_sco_name AS scope_name, res_sco_method AS scope_method
                   FROM resources 
                   JOIN resources_scopes ON res_id = res_sco_res_id

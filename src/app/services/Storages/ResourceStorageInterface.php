@@ -13,6 +13,14 @@ use Oauth\Services\Resources\ScopeInterface;
 
 interface ResourceStorageInterface
 {
+
+    /**
+     * Return a full representation of a resource with it's respective scope
+     * @param string $identification
+     * @return ResourceInterface
+     */
+    public function fetchByResourceIdentification(string $identification) : ResourceInterface;
+
     /**
      * Return a full representation of a resource with it's respective scope
      * @param string $audience

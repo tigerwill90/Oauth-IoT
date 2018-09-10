@@ -9,6 +9,7 @@
 namespace Oauth\Services;
 
 use Jose\Component\Core\JWKSet;
+use Oauth\Services\Resources\ResourceInterface;
 
 /**
  * OAuth 2.0 Token Introspection RFC 7662
@@ -53,6 +54,21 @@ interface IntrospectionInterface extends \JsonSerializable
      * @return IntrospectionInterface
      */
     public function withChecker(string $aliasChecker) : IntrospectionInterface;
+
+    /**
+     * Set pop introspection method, with an optional no-tls support
+     * @param bool $tls
+     * @param string|null $secret
+     * @return IntrospectionInterface
+     */
+    public function setPopKey(bool $tls = true, string $secret = null) : IntrospectionInterface;
+
+    /**
+     * Set a instance of resource interface, will be useful for claims checker
+     * @param ResourceInterface $resource
+     * @return IntrospectionInterface
+     */
+    public function setResource(ResourceInterface $resource) : IntrospectionInterface;
 
     /**
      * Set claim who MUST be in the token and who need to be verified

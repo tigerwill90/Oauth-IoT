@@ -10,12 +10,12 @@ namespace Oauth\Services\Authentication;
 
 use Oauth\Services\Clients\ClientInterface;
 use Oauth\Services\Exceptions\Storage\NoEntityException;
+use Oauth\Services\Helpers\JoseHelperInterface;
 use Oauth\Services\Resources\ResourceInterface;
 use Oauth\Services\Storage\ClientStorageInterface;
 use Oauth\Services\Storage\ResourceStorageInterface;
 use Oauth\Services\Storage\UserStorageInterface;
 use Memcached;
-use Oauth\Services\Token\TokenManager;
 use Psr\Log\LoggerInterface;
 use RandomLib\Generator;
 
@@ -39,8 +39,8 @@ abstract class AuthorizationGrantType
     /** @var Generator */
     protected $generator;
 
-    /** @var TokenManager */
-    protected $tokenManager;
+    /** @var JoseHelperInterface */
+    protected $joseHelper;
 
     /** @var array */
     protected $errorsMessages = [];
@@ -69,13 +69,13 @@ abstract class AuthorizationGrantType
     /** @var LoggerInterface  */
     protected $logger;
 
-    public function __construct(ClientStorageInterface $clientStorage, UserStorageInterface $userStorage, ResourceStorageInterface $resourceStorage, Generator $generator, TokenManager $tokenManager, LoggerInterface $logger = null)
+    public function __construct(ClientStorageInterface $clientStorage, UserStorageInterface $userStorage, ResourceStorageInterface $resourceStorage, Generator $generator, JoseHelperInterface $joseHelper, LoggerInterface $logger = null)
     {
         $this->clientStorage = $clientStorage;
         $this->userStorage = $userStorage;
         $this->resourceStorage = $resourceStorage;
         $this->generator = $generator;
-        $this->tokenManager = $tokenManager;
+        $this->joseHelper = $joseHelper;
         $this->logger = $logger;
     }
 
@@ -250,9 +250,11 @@ abstract class AuthorizationGrantType
      * RFC 6749
      * Section 3.1.2 Redirection endpoint and url encoding style
      * @param array $cache
+     * @param array $params
+     * @param Memcached $mc
      * @return string
      */
-    abstract public function getQueryResponse(array $cache) : string;
+    abstract public function getQueryResponse(array $cache, array $params, Memcached $mc) : string;
 
     /**
      * @return ResourceInterface

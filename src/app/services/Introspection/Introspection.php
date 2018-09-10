@@ -9,10 +9,12 @@
 namespace Oauth\Services;
 
 use Jose\Component\Core\JWKSet;
+use Oauth\Services\Helpers\AesHelperInterface;
 use Oauth\Services\Helpers\AlgorithmManagerHelperInterface;
 use Oauth\Services\Helpers\JoseHelperInterface;
+use Oauth\Services\Resources\ResourceInterface;
+use phpseclib\Crypt\AES;
 use Psr\Log\LoggerInterface;
-use Memcached;
 
 class Introspection implements IntrospectionInterface
 {
@@ -21,6 +23,9 @@ class Introspection implements IntrospectionInterface
 
     /** @var AlgorithmManagerHelperInterface  */
     private $algorithmHelper;
+
+    /** @var AesHelperInterface */
+    private $aesHelper;
 
     /** @var array */
     private $claimsToCheck = [self::CLAIM_ISS, self::CLAIM_EXP, self::CLAIM_JTI];
@@ -72,6 +77,18 @@ class Introspection implements IntrospectionInterface
     /** @var int */
     private static $time;
 
+    /** @var string */
+    private $secret;
+
+    /** @var bool */
+    private $pop = false;
+
+    /** @var JWKSet */
+    private $jwkSet;
+
+    /** @var ResourceInterface */
+    private $resource;
+
     /** @var LoggerInterface  */
     private $logger;
 
@@ -80,14 +97,15 @@ class Introspection implements IntrospectionInterface
      * @param JoseHelperInterface $joseHelper
      * @param AlgorithmManagerHelperInterface $algorithmHelper
      * @param ClaimsCheckerManager $claimCheckerManager
+     * @param AesHelperInterface $aesHelper
      * @param LoggerInterface|null $logger
      */
-    public function __construct(JoseHelperInterface $joseHelper, AlgorithmManagerHelperInterface $algorithmHelper, ClaimsCheckerManager $claimCheckerManager, LoggerInterface $logger = null)
+    public function __construct(JoseHelperInterface $joseHelper, AlgorithmManagerHelperInterface $algorithmHelper, ClaimsCheckerManager $claimCheckerManager, AesHelperInterface $aesHelper, LoggerInterface $logger = null)
     {
         $this->joseHelper = $joseHelper;
         $this->algorithmHelper = $algorithmHelper;
         $this->claimsCheckerManager = $claimCheckerManager;
-        $this->mc = $mc;
+        $this->aesHelper = $aesHelper;
         $this->logger = $logger;
     }
 
@@ -97,9 +115,38 @@ class Introspection implements IntrospectionInterface
      * @param string $aliasChecker
      * @return IntrospectionInterface
      */
-    public function withChecker(string $aliasChecker): IntrospectionInterface
+    public function withChecker(string $aliasChecker) : IntrospectionInterface
     {
         $this->claimsChecker = $this->claimsCheckerManager->getClaimChecker($aliasChecker);
+        return $this;
+    }
+
+    /**
+     * @param bool $tls
+     * @param string|null $secret
+     * @return IntrospectionInterface
+     */
+    public function setPopKey(bool $tls = true, string $secret = null) : IntrospectionInterface
+    {
+        $this->pop = true;
+        if (!$tls && $secret === null) {
+            throw new \InvalidArgumentException('secret must be given for no tls support resource');
+        }
+
+        if (!$tls) {
+            $this->secret = $secret;
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param ResourceInterface $resource
+     * @return IntrospectionInterface
+     */
+    public function setResource(ResourceInterface $resource) : IntrospectionInterface
+    {
+        $this->resource = $resource;
         return $this;
     }
 
@@ -227,9 +274,14 @@ class Introspection implements IntrospectionInterface
     public function introspectToken(\Psr\Http\Message\ServerRequestInterface $request, JWKSet $jwkSet, bool $onlyMandatoryClaims = false) : bool
     {
         self::$time = time();
+        $this->jwkSet = $jwkSet;
 
         if ($this->claimsChecker === null) {
             throw new \InvalidArgumentException('ClaimCheckerInterface dependency unsatisfied');
+        }
+
+        if ($this->resource === null) {
+            throw new \InvalidArgumentException('ResourceInterface dependency unsatisfied');
         }
 
         $this->invalidClaims = [];
@@ -325,10 +377,21 @@ class Introspection implements IntrospectionInterface
             return true;
         }
 
+        // Search for a pop shared key
+        $sharedKey = null;
+        if ($this->pop) {
+            try {
+                $sharedKey = $this->jwkSet->get($headers['kid'] . '-s')->get('k');
+            } catch (\Exception $e) {
+                $this->setStandardResponse(false);
+                return true;
+            }
+        }
+
         // Check the authenticity of the token, catch an invalid token
         try {
             $isVerified = $this->joseHelper
-                ->setJwk($jwkSet->get($headers['kid']))
+                ->setJwk($this->jwkSet->get($headers['kid']))
                 ->verifyToken();
         } catch (\Exception $e) {
             $this->setStandardResponse(false);
@@ -384,7 +447,7 @@ class Introspection implements IntrospectionInterface
             $active = false;
         }
 
-        $this->setStandardResponse($active, $claims);
+        $this->setStandardResponse($active, $claims, $sharedKey);
         return true;
     }
 
@@ -406,23 +469,35 @@ class Introspection implements IntrospectionInterface
      * Set a standard introspection response for well formed request
      *
      * RFC7662 Section 2.2
-     * @param array $claims
      * @param bool $active
+     * @param array $claims
+     * @param string|null $sharedKey
      * @return Introspection
      */
-    private function setStandardResponse(bool $active, array $claims = null) : self
+    private function setStandardResponse(bool $active, array $claims = null, string $sharedKey = null) : self
     {
-
         if ($active) {
             $this->response[self::RESP_ACTIVE] = $active;
             $arrayResponse = $this->activeResponse;
             $arrayOptionalResponse = $this->optionalActiveResponse;
+
+            if (null !== $sharedKey) {
+                if ($this->secret === null) {
+                    $this->response['key'] = $sharedKey;
+                } else {
+                    $encryptedSharedKey = $this->aesHelper
+                        ->setMode(AES::MODE_ECB)
+                        ->aesEncrypt($this->secret, $sharedKey, false);
+                    $this->response['key'] = $encryptedSharedKey;
+                }
+            }
+
         } else {
             $arrayResponse = $this->inactiveResponse;
             $arrayOptionalResponse = $this->optionalInactiveResponse;
         }
 
-        // Set active response with claims
+        // Set active/inactive response with claims
         foreach ($arrayResponse as $member) {
             // specific handling for token type hint
             if ($member === self::RESP_TOKEN_TYPE && null !== $this->tokenTypeHint) {
@@ -542,7 +617,7 @@ class Introspection implements IntrospectionInterface
      */
     private function checkAud(array $claims) : bool
     {
-        return $this->claimsChecker->verifyAud($claims);
+        return $this->claimsChecker->verifyAud($claims, $this->resource);
     }
 
     /**

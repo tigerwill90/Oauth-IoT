@@ -9,7 +9,7 @@ $container = $app->getContainer();
  * @return \Oauth\Controllers\IntrospectionEndpoint
  */
 $container[\Oauth\Controllers\IntrospectionEndpoint::class] = function (ContainerInterface $c) {
-    return new \Oauth\Controllers\IntrospectionEndpoint($c->get('IntrospectionService'), $c->get('Memcached'), $c->get('AesHelper'), $c->get('DebugLogger'));
+    return new \Oauth\Controllers\IntrospectionEndpoint($c->get('IntrospectionService'), $c->get('Memcached'), $c->get('PdoResourceStorage'), $c->get('DebugLogger'));
 };
 
 /**
@@ -57,15 +57,7 @@ $container[\Oauth\Controllers\UpdateClientController::class] = function (Contain
  * @return \Oauth\Services\Introspection
  */
 $container['IntrospectionService'] = function (ContainerInterface $c) {
-    return new \Oauth\Services\Introspection($c->get('JoseHelper'), $c->get('AlgorithmManagerHelper'), $c->get('ClaimsCheckerManager'), $c->get('DebugLogger'));
-};
-
-/**
- * @param ContainerInterface $c
- * @return \Oauth\Services\Token\TokenManager
- */
-$container['TokenManager'] = function (ContainerInterface $c) {
-    return new \Oauth\Services\Token\TokenManager($c->get('Memcached'), $c->get('RandomFactory'), $c->get('JoseHelper'), $c->get('DebugLogger'));
+    return new \Oauth\Services\Introspection($c->get('JoseHelper'), $c->get('AlgorithmManagerHelper'), $c->get('ClaimsCheckerManager'), $c->get('AesHelper'),$c->get('DebugLogger'));
 };
 
 /**
@@ -83,7 +75,7 @@ $container['AuthenticationService'] = function (ContainerInterface $c) {
  * @return \Oauth\Services\Authentication\ImplicitGrant
  */
 $container['ImplicitGrantFlow'] = function (ContainerInterface $c) {
-    return new \Oauth\Services\Authentication\ImplicitGrant($c->get('PdoClientStorage'), $c->get('PdoUserStorage'), $c->get('PdoResourceStorage'), $c->get('RandomFactory'), $c->get('TokenManager'), $c->get('DebugLogger'));
+    return new \Oauth\Services\Authentication\ImplicitGrant($c->get('PdoClientStorage'), $c->get('PdoUserStorage'), $c->get('PdoResourceStorage'), $c->get('RandomFactory'), $c->get('JoseHelper'), $c->get('DebugLogger'));
 };
 
 /**

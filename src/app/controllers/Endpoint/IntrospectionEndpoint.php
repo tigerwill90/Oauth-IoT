@@ -8,19 +8,17 @@
 
 namespace Oauth\Controllers;
 
-use Jose\Component\Core\JWK;
 use Jose\Component\Core\JWKSet;
-use Oauth\Services\Helpers\AesHelperInterface;
+use Oauth\Services\Exceptions\Storage\NoEntityException;
 use Memcached;
 use Oauth\Services\IntrospectionInterface;
-use phpseclib\Crypt\AES;
+use Oauth\Services\Storage\ResourceStorageInterface;
 use \Psr\Http\Message\ServerRequestInterface;
 use \Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 
 final class IntrospectionEndpoint
 {
-
     /** @var IntrospectionInterface  */
     private $introspection;
 
@@ -30,15 +28,15 @@ final class IntrospectionEndpoint
     /** @var LoggerInterface  */
     private $logger;
 
-    /** @var  AesHelperInterface*/
-    private $aesHelper;
+    /** @var ResourceStorageInterface */
+    private $resourceStorage;
 
-    public function __construct(IntrospectionInterface $introspection, Memcached $mc, AesHelperInterface $aesHelper, LoggerInterface $logger = null)
+    public function __construct(IntrospectionInterface $introspection, Memcached $mc, ResourceStorageInterface $resourceStorage, LoggerInterface $logger = null)
     {
         $this->introspection = $introspection;
         $this->logger = $logger;
         $this->mc = $mc;
-        $this->aesHelper = $aesHelper;
+        $this->resourceStorage = $resourceStorage;
     }
 
     /**
@@ -49,18 +47,48 @@ final class IntrospectionEndpoint
     public function __invoke(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface
     {
 
-        $jwkSet = $this->mc->get('iot_1');
+        $headers = $request->getHeader('HTTP_AUTHORIZATION');
+        $identification = null;
+        if (isset($headers[0]) && preg_match('/Basic\s+(.*)$/i', $headers[0],$matches)) {
+            $identification =  $matches[1];
+        } else {
+            $body = $response->getBody();
+            $body->write(json_encode(['error' => 'invalid resource']));
+            return $response
+                ->withBody($body)
+                ->withHeader('content-type', 'application/json')
+                ->withStatus(401);
+        }
 
-        $encryptedKey = $this->aesHelper
-            ->setMode(AES::MODE_ECB)
-            ->aesEncrypt('abcdef!hij012345', 'AaBbCcDdEe0123Az', false);
+        try {
+            $resource = $this->resourceStorage->fetchByResourceIdentification(base64_decode($identification));
+            // TODO check password is TLS on
+        } catch (NoEntityException $e) {
+            $body = $response->getBody();
+            $body->write(json_encode(['error' => 'invalid resource']));
+            return $response
+                ->withBody($body)
+                ->withHeader('content-type', 'application/json')
+                ->withStatus(401);
+        }
 
-        $isValidToken =$this->introspection
+        $jwkSet = $this->mc->get($resource->getAudience());
+
+        if (empty($jwkSet)) {
+            $jwkSet = JWKSet::createFromKeys([]);
+        }
+
+        $this->introspection
             ->withChecker('standard')
+            ->setResource($resource)
             ->setRequestParameterToVerify('token')
-            ->setMandatoryClaims([IntrospectionInterface::CLAIM_EXP, IntrospectionInterface::CLAIM_JTI, IntrospectionInterface::CLAIM_AUD])
-            ->setActiveResponseParameter(['exp'], null, null, ['key' => $encryptedKey])
-            ->introspectToken($request, $jwkSet, true);
+            ->setMandatoryClaims([IntrospectionInterface::CLAIM_EXP, IntrospectionInterface::CLAIM_AUD]);
+
+        if ($resource->getPopMethod() === 'introspection') {
+            $this->introspection->setPopKey($resource->isTls(), $resource->getResourceSecret());
+        }
+
+        $isValidToken = $this->introspection->introspectToken($request, $jwkSet, true);
 
         $body = $response->getBody();
         $body->write(json_encode($this->introspection, JSON_UNESCAPED_SLASHES));
@@ -70,11 +98,24 @@ final class IntrospectionEndpoint
 
         if ($isValidToken) {
             if (!empty($this->introspection->getInvalidClaims())) {
-                $this->logger->info(print_r($this->introspection->getInvalidClaims(), true), ['info' => 'invalid claims']);
+                $this->log(print_r($this->introspection->getInvalidClaims(), true), ['info' => 'invalid claims']);
             }
             return $newResponse;
         }
 
         return $newResponse->withStatus(401);
+    }
+
+    /**
+     * @param string $message
+     * @param array $context
+     * @return IntrospectionEndpoint
+     */
+    private function log(string $message, array $context = []) : self
+    {
+        if (null !== $this->logger) {
+            $this->logger->debug($message, $context);
+        }
+        return $this;
     }
 }

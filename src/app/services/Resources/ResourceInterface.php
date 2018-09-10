@@ -12,6 +12,11 @@ namespace Oauth\Services\Resources;
 interface ResourceInterface extends \JsonSerializable
 {
     /**
+     * @return string
+     */
+    public function getResourceSecret(): string;
+
+    /**
      * @return ScopeInterface[]
      */
     public function getScope(): array;
@@ -31,4 +36,19 @@ interface ResourceInterface extends \JsonSerializable
      * @return string
      */
     public function getAudience(): string;
+
+    /**
+     * @return bool
+     */
+    public function isTls(): bool;
+
+    /**
+     * @return string
+     */
+    public function getSharedKeyAlgorithm(): string;
+
+    /**
+     * @return int
+     */
+    public function getKeySize(): int;
 }

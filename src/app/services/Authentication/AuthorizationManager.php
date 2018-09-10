@@ -158,7 +158,7 @@ class AuthorizationManager
             $this->grantType[$this->grantMethod]->updateCache($params['unique_identifier'], $this->mc);
             throw $e;
         }
-        $this->queryResponse = $this->grantType[$this->grantMethod]->getQueryResponse($cache);
+        $this->queryResponse = $this->grantType[$this->grantMethod]->getQueryResponse($cache, $params, $this->mc);
         return $this;
     }
 

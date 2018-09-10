@@ -9,6 +9,7 @@
 namespace Oauth\Services;
 
 use Memcached;
+use Oauth\Services\Resources\ResourceInterface;
 
 class ClaimsCheckerRules implements ClaimsCheckerInterface
 {
@@ -21,6 +22,10 @@ class ClaimsCheckerRules implements ClaimsCheckerInterface
         $this->mc = $mc;
     }
 
+    /**
+     * @param array $claims
+     * @return bool
+     */
     public function verifySub(array $claims) : bool
     {
         return false;
@@ -29,18 +34,27 @@ class ClaimsCheckerRules implements ClaimsCheckerInterface
     /**
      * Verify than aud match with the RS (use resource identification to perform the check)
      * @param array $claims
+     * @param ResourceInterface $resource
      * @return bool
      */
-    public function verifyAud(array $claims) : bool
+    public function verifyAud(array $claims, ResourceInterface $resource) : bool
     {
-        return $claims['aud'] === 'iot_1';
+        return $claims['aud'] === $resource->getAudience();
     }
 
+    /**
+     * @param array $claims
+     * @return bool
+     */
     public function verifyIss(array $claims) : bool
     {
         return $claims['iss'] === 'My service';
     }
 
+    /**
+     * @param array $claims
+     * @return bool
+     */
     public function verifyJti(array $claims) : bool
     {
         // jti already used ?
@@ -56,7 +70,12 @@ class ClaimsCheckerRules implements ClaimsCheckerInterface
         return true;
     }
 
-    public function verifyScope(array $claims) : bool
+    /**
+     * @param array $claims
+     * @param ResourceInterface $resource
+     * @return bool
+     */
+    public function verifyScope(array $claims, ResourceInterface $resource) : bool
     {
         return false;
     }

@@ -8,6 +8,8 @@
 
 namespace Oauth\Services;
 
+use Oauth\Services\Resources\ResourceInterface;
+
 interface ClaimsCheckerInterface
 {
     /**
@@ -20,9 +22,10 @@ interface ClaimsCheckerInterface
     /**
      * Return false if aud don't match
      * @param array $claims
+     * @param ResourceInterface $resource
      * @return bool
      */
-    public function verifyAud(array $claims) : bool;
+    public function verifyAud(array $claims, ResourceInterface $resource) : bool;
 
     /**
      * Return false if iss don't match
@@ -41,7 +44,8 @@ interface ClaimsCheckerInterface
     /**
      * Return false if permission don't match
      * @param array $claims
+     * @param ResourceInterface $resource
      * @return bool
      */
-    public function verifyScope(array $claims) : bool;
+    public function verifyScope(array $claims, ResourceInterface $resource) : bool;
 }
