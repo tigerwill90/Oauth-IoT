@@ -78,6 +78,8 @@ final class IntrospectionEndpoint
             $jwkSet = JWKSet::createFromKeys([]);
         }
 
+        $this->log(print_r($jwkSet, true));
+
         $this->introspection
             ->withChecker('standard')
             ->setResource($resource)

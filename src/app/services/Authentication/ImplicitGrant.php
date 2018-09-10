@@ -109,7 +109,7 @@ class ImplicitGrant extends AuthorizationGrantType
             'kid' => $kid,
         ]);
 
-        $jwkSet = (object)$mc->get($resource->getAudience());
+        $jwkSet = $mc->get($resource->getAudience());
 
         $jweKey = null;
         if ($resource->getPopMethod() !== 'introspection') {
@@ -136,6 +136,7 @@ class ImplicitGrant extends AuthorizationGrantType
             } else {
                 $jwkSet = $jwkSet->with($sharedKey)->with($accessTokenKey);
             }
+
             $mc->replace($resource->getAudience(), $jwkSet, self::EXPIRATION);
         }
 

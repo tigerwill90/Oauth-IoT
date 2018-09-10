@@ -11,7 +11,7 @@ namespace Oauth\Controllers;
 use Oauth\Services\Authentication\AuthenticationTimeoutException;
 use Oauth\Services\Authentication\AuthorizationManager;
 use Oauth\Services\Authentication\InvalidCredential;
-use Oauth\services\Authentication\NoRedirectErrorException;
+use Oauth\Services\Authentication\NoRedirectErrorException;
 use Oauth\Services\Authentication\SecurityException;
 use Oauth\Services\Validators\ValidatorManagerInterface;
 use Psr\Http\Message\ResponseInterface;
