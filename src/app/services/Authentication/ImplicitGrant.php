@@ -176,7 +176,7 @@ class ImplicitGrant extends AuthorizationGrantType
         ];
 
         if (null === $jweKey) {
-            $queryResponse['shared_key'] = $sharedKey;
+            $queryResponse['shared_key'] = $sharedKey->get('k');
         }
 
         return http_build_query($queryResponse, null, '&', PHP_QUERY_RFC3986);

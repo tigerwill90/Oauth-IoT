@@ -51,6 +51,8 @@ $container['notAllowedHandler'] = function (ContainerInterface $c) {
  */
 $container['notFoundHandler'] = function (ContainerInterface $c) {
   return function (ServerRequestInterface $request, ResponseInterface $response) use ($c) {
+      $logger = $c->get('DebugLogger');
+      $logger->info($request->getUri());
       $body = $response->getBody();
       $body->write(json_encode(['error' => 'resource not found']));
 

@@ -49,6 +49,7 @@ final class IntrospectionEndpoint
 
         $headers = $request->getHeader('HTTP_AUTHORIZATION');
         $identification = null;
+
         if (isset($headers[0]) && preg_match('/Basic\s+(.*)$/i', $headers[0],$matches)) {
             $identification =  $matches[1];
         } else {

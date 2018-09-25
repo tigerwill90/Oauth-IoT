@@ -285,7 +285,12 @@ class Introspection implements IntrospectionInterface
         }
 
         $this->invalidClaims = [];
-        $args = $request->getParsedBody();
+
+        if ($request->getMethod() === 'GET') {
+            $args[$this->token] = $request->getHeader('HTTP_TOKEN')[0];
+        } else {
+            $args = $request->getParsedBody();
+        }
 
         // Check if request as mandatory parameter
         if (!isset($args[$this->token])) {

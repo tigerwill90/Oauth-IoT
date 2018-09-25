@@ -4,7 +4,7 @@
     use \Psr\Http\Message\ResponseInterface;
     use phpseclib\Crypt\AES;
 
-    const SHAREDKEY = 'AaBbCcDdEe0123Az';
+    const SHAREDKEY = 'f06Us9ADOF5QJJgL';
 
     $app->get('/', function (ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface {
         $body = $response->getBody();
@@ -12,7 +12,7 @@
         return $response->withBody($body);
     });
 
-    $app->post('/introspect', Oauth\Controllers\IntrospectionEndpoint::class);
+    $app->map(['GET','POST'],'/introspect', Oauth\Controllers\IntrospectionEndpoint::class);
     $app->get('/authorize', Oauth\Controllers\TokenEndpoint::class);
     $app->group('/auth', function () {
         $this->get('', \Oauth\Controllers\AuthenticationEndpoint::class . ':sign');
@@ -76,7 +76,7 @@
     $app->get('/weather', function(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface {
 
         $curl = curl_init('http://192.168.192.80/protected');
-        $authorization = 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MzU1NTUwMDcsImp0aSI6IjAxMjM0NTY3ODkifQ.BzYb-BUbMYSfRAF8PdM8L6U9pU3QtexyJKRz4cbkeqs';
+        $authorization = 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjR6eUwifQ.eyJleHAiOjE1Mzc5MDQ4OTcsImF1ZCI6ImlvdF8xIn0.8M5CXlwRDXSoKeMuwJAKuHCxf3Xn1vET9AUzKUfTRt0';
         curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json' , $authorization));
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_HEADERFUNCTION, 'HandleHeaderLine');

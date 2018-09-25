@@ -3,19 +3,25 @@
 # Oauth 2.0 Server with IoT device support
 
 ### Getting started
-#### Unix, make, docker & docker-compose
+#### Unix system
 
-If you can satisfy the dependencies above, this is the easiest way to start an Oauth server
+If you can satisfy the dependencies below, this is the easiest way to start an Oauth server
+
+- Unix system
+- make
+- docker
+- docker-compose
+- git
 
 Rename .env.example file to .env in racine folder
 
 ````
+git clone  https://github.com/tigerwill90/Oauth-IoT.git
+cd Oauth-IoT
+cp .env.exemple .env
 make install
 ````
 Server will start automatically !
-
-#### Windows
-Incoming...
 
 ### Tests
 
@@ -35,4 +41,4 @@ make static
 You can reset the whole project with `make clean` (without logs and db) or `make mrproper`
 
 ### Version
-v0.4-dev
+v0.5-dev
