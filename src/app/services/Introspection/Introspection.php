@@ -8,13 +8,14 @@
 
 namespace Oauth\Services;
 
+use Jose\Component\Core\JWK;
 use Jose\Component\Core\JWKSet;
 use Oauth\Services\Helpers\AesHelperInterface;
 use Oauth\Services\Helpers\AlgorithmManagerHelperInterface;
 use Oauth\Services\Helpers\JoseHelperInterface;
-use Oauth\Services\Resources\ResourceInterface;
 use phpseclib\Crypt\AES;
 use Psr\Log\LoggerInterface;
+use Memcached;
 
 class Introspection implements IntrospectionInterface
 {
@@ -86,8 +87,14 @@ class Introspection implements IntrospectionInterface
     /** @var JWKSet */
     private $jwkSet;
 
-    /** @var ResourceInterface */
-    private $resource;
+    /** @var AudienceInterface */
+    private $audience;
+
+    /** @var array */
+    private $claims = [];
+
+    /** @var Memcached  */
+    private $mc;
 
     /** @var LoggerInterface  */
     private $logger;
@@ -100,13 +107,14 @@ class Introspection implements IntrospectionInterface
      * @param AesHelperInterface $aesHelper
      * @param LoggerInterface|null $logger
      */
-    public function __construct(JoseHelperInterface $joseHelper, AlgorithmManagerHelperInterface $algorithmHelper, ClaimsCheckerManager $claimCheckerManager, AesHelperInterface $aesHelper, LoggerInterface $logger = null)
+    public function __construct(JoseHelperInterface $joseHelper, AlgorithmManagerHelperInterface $algorithmHelper, ClaimsCheckerManager $claimCheckerManager, AesHelperInterface $aesHelper, Memcached $mc ,LoggerInterface $logger = null)
     {
         $this->joseHelper = $joseHelper;
         $this->algorithmHelper = $algorithmHelper;
         $this->claimsCheckerManager = $claimCheckerManager;
         $this->aesHelper = $aesHelper;
         $this->logger = $logger;
+        $this->mc = $mc;
     }
 
     /**
@@ -141,12 +149,12 @@ class Introspection implements IntrospectionInterface
     }
 
     /**
-     * @param ResourceInterface $resource
+     * @param AudienceInterface $audience
      * @return IntrospectionInterface
      */
-    public function setResource(ResourceInterface $resource) : IntrospectionInterface
+    public function setAudience(AudienceInterface $audience) : IntrospectionInterface
     {
-        $this->resource = $resource;
+        $this->audience = $audience;
         return $this;
     }
 
@@ -271,7 +279,7 @@ class Introspection implements IntrospectionInterface
      * @param bool $onlyMandatoryClaims
      * @return bool
      */
-    public function introspectToken(\Psr\Http\Message\ServerRequestInterface $request, JWKSet $jwkSet, bool $onlyMandatoryClaims = false) : bool
+    public function introspectToken(\Psr\Http\Message\ServerRequestInterface $request, JWKSet $jwkSet = null, bool $onlyMandatoryClaims = false) : bool
     {
         self::$time = time();
         $this->jwkSet = $jwkSet;
@@ -280,16 +288,25 @@ class Introspection implements IntrospectionInterface
             throw new \InvalidArgumentException('ClaimCheckerInterface dependency unsatisfied');
         }
 
-        if ($this->resource === null) {
-            throw new \InvalidArgumentException('ResourceInterface dependency unsatisfied');
+        if ($this->audience === null) {
+            throw new \InvalidArgumentException('AudienceInterface dependency unsatisfied');
         }
 
         $this->invalidClaims = [];
 
-        if ($request->getMethod() === 'GET') {
-            $args[$this->token] = $request->getHeader('HTTP_TOKEN')[0];
-        } else {
-            $args = $request->getParsedBody();
+        $args = $request->getParsedBody();
+
+        // Get parameter from header if body is empty
+        if (empty($args)) {
+            $headerArgs = $request->getHeader('HTTP_' . $this->token);
+            if (!empty($headerArgs)) {
+                $args[$this->token] = $headerArgs[0] ?? null;
+                if (null !== $this->tokenTypeHint) {
+                    $args[$this->tokenTypeHint] = $request->getHeader('HTTP_' . $this->tokenTypeHint)[0] ?? null;
+                }
+            } else {
+                $args = $request->getQueryParams();
+            }
         }
 
         // Check if request as mandatory parameter
@@ -386,7 +403,14 @@ class Introspection implements IntrospectionInterface
         $sharedKey = null;
         if ($this->pop) {
             try {
-                $sharedKey = $this->jwkSet->get($headers['kid'] . '-s')->get('k');
+                if ($this->jwkSet === null) {
+                    $sharedKey = $this->mc->get($headers['kid'] . '-s');
+                    if (!$sharedKey) {
+                        $sharedKey = null;
+                    }
+                } else {
+                    $sharedKey = $this->jwkSet->get($headers['kid'] . '-s')->get('k');
+                }
             } catch (\Exception $e) {
                 $this->setStandardResponse(false);
                 return true;
@@ -394,9 +418,19 @@ class Introspection implements IntrospectionInterface
         }
 
         // Check the authenticity of the token, catch an invalid token
+        $jwk = null;
         try {
+            if ($this->jwkSet === null) {
+                $jwk = $this->mc->get($headers['kid']);
+                if (!$jwk) {
+                    $this->setStandardResponse(false);
+                    return true;
+                }
+            } else {
+                $jwk = $this->jwkSet->get($headers['kid']);
+            }
             $isVerified = $this->joseHelper
-                ->setJwk($this->jwkSet->get($headers['kid']))
+                ->setJwk($jwk)
                 ->verifyToken();
         } catch (\Exception $e) {
             $this->setStandardResponse(false);
@@ -405,7 +439,7 @@ class Introspection implements IntrospectionInterface
 
         // Retrieve claims, catch an invalid JWE token
         try {
-            $claims = $this->joseHelper->getClaims();
+            $this->claims = $this->joseHelper->getClaims();
         } catch (\Exception $e) {
             $this->setStandardResponse(false);
             return true;
@@ -414,7 +448,7 @@ class Introspection implements IntrospectionInterface
         if ($isVerified) {
             $active = true;
             // Check if  all mandatory claims are present
-            if (\count($this->claimsToCheck) === \count(array_intersect($this->claimsToCheck, array_keys($claims)))) {
+            if (\count($this->claimsToCheck) === \count(array_intersect($this->claimsToCheck, array_keys($this->claims)))) {
                 /**
                  * Check the validity of each mandatory claims
                  * Sometimes, you want check only mandatory claims
@@ -436,13 +470,13 @@ class Introspection implements IntrospectionInterface
                 }
                 foreach ($claimsToCheck as $claimToCheck) {
                     try {
-                        if (array_key_exists($claimToCheck, $claims) && !$this->{'check' . ucfirst($claimToCheck)}($claims)) {
+                        if (array_key_exists($claimToCheck, $this->claims) && !$this->{'check' . ucfirst($claimToCheck)}($this->claims)) {
                             $active = false;
-                            $this->invalidClaims[$claimToCheck] = $claims[$claimToCheck];
+                            $this->invalidClaims[$claimToCheck] = $this->claims[$claimToCheck];
                         }
                     } catch (\InvalidArgumentException $e) {
                         $active = false;
-                        $this->invalidClaims[$claimToCheck] = $claims[$claimToCheck];
+                        $this->invalidClaims[$claimToCheck] = $this->claims[$claimToCheck];
                     }
                 }
             } else {
@@ -452,7 +486,7 @@ class Introspection implements IntrospectionInterface
             $active = false;
         }
 
-        $this->setStandardResponse($active, $claims, $sharedKey);
+        $this->setStandardResponse($active, $this->claims, $sharedKey);
         return true;
     }
 
@@ -476,10 +510,10 @@ class Introspection implements IntrospectionInterface
      * RFC7662 Section 2.2
      * @param bool $active
      * @param array $claims
-     * @param string|null $sharedKey
+     * @param JWK $sharedKey
      * @return Introspection
      */
-    private function setStandardResponse(bool $active, array $claims = null, string $sharedKey = null) : self
+    private function setStandardResponse(bool $active, array $claims = null, JWK $sharedKey = null) : self
     {
         if ($active) {
             $this->response[self::RESP_ACTIVE] = $active;
@@ -488,11 +522,11 @@ class Introspection implements IntrospectionInterface
 
             if (null !== $sharedKey) {
                 if ($this->secret === null) {
-                    $this->response['key'] = $sharedKey;
+                    $this->response['key'] = $sharedKey->get('k');
                 } else {
                     $encryptedSharedKey = $this->aesHelper
                         ->setMode(AES::MODE_ECB)
-                        ->aesEncrypt($this->secret, $sharedKey, false);
+                        ->aesEncrypt($this->secret, $sharedKey->get('k'), false);
                     $this->response['key'] = $encryptedSharedKey;
                 }
             }
@@ -560,9 +594,18 @@ class Introspection implements IntrospectionInterface
      *
      * @return array[string]string|int
      */
-    public function getInvalidClaims(): array
+    public function getInvalidClaims() : array
     {
         return $this->invalidClaims;
+    }
+
+    /**
+     * Return an array with all jwt claims
+     * @return array[string]string|int
+     */
+    public function getClaims() : array
+    {
+        return $this->claims;
     }
 
     /**
@@ -622,7 +665,7 @@ class Introspection implements IntrospectionInterface
      */
     private function checkAud(array $claims) : bool
     {
-        return $this->claimsChecker->verifyAud($claims, $this->resource);
+        return $this->claimsChecker->verifyAud($claims, $this->audience);
     }
 
     /**
@@ -649,7 +692,7 @@ class Introspection implements IntrospectionInterface
      */
     private function checkScope(array $claims) : bool
     {
-        return $this->claimsChecker->verifyScope($claims);
+        return $this->claimsChecker->verifyScope($claims, $this->audience);
     }
 
     /**

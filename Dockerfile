@@ -7,17 +7,26 @@
 FROM php:7.2.9-apache
 MAINTAINER "tigerwill90" <sylvain.muller90@gmail.com>
 
-ENV USER=www-data
-ENV GROUP=www-data
+ENV USER="oauth" \
+    GROUP="oauth" \
+    UID="1000" \
+    GID="1000"
 
-ARG CA_COUNTRY=CH
-ARG CA_STATE=Geneva
-ARG CA_LOCALITY=Geneva
-ARG CA_ORGANIZATION=Spectre\ inc
-ARG CA_ORGANIZATIONUNIT=R&D
-ARG CA_COMMON=oauth.xyz
+ARG CA_COUNTRY="CH"
+ARG CA_STATE="Geneva"
+ARG CA_LOCALITY="Geneva"
+ARG CA_ORGANIZATION="Spectre inc"
+ARG CA_ORGANIZATIONUNIT="R&D"
+ARG CA_COMMON="oauth.xyz"
 
 ADD /src /var/www/html
+
+###
+### User/Group
+###
+RUN set -x \
+	&& groupadd -g ${GID} -r ${GROUP} \
+	&& useradd -u ${UID} -m -s /bin/bash -g ${GROUP} ${USER}
 
 ###
 ### Install tools
@@ -85,7 +94,6 @@ RUN set -x \
 ###
 ### Install composer
 ###
-ENV COMPOSER_ALLOW_SUPERUSER=1
 RUN set -x \
   && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
   && composer self-update
@@ -103,9 +111,10 @@ RUN openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private
 ###
 ### Configure ssl 
 ###
-RUN a2enmod rewrite
-RUN a2ensite default-ssl
-RUN a2enmod ssl
+RUN set -x \
+    && a2enmod rewrite \
+    && a2ensite default-ssl \
+    && a2enmod ssl
 
 ###
 ### Override default vhost conf
@@ -126,7 +135,7 @@ RUN set -x \
   && chmod -R 777 /var/www/html/logs \
   && chown -R ${USER}:${GROUP} /var/www/html
 
-RUN service apache2 restart
+RUN set -x service apache2 restart
 
 VOLUME /var/www/html
 

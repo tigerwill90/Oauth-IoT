@@ -16,7 +16,6 @@ use Oauth\Services\Exceptions\Storage\StorageException;
 use Oauth\Services\Exceptions\Storage\UniqueException;
 use Oauth\Services\Exceptions\ValidatorException;
 use Oauth\Services\Storage\ClientStorageInterface;
-use Oauth\Services\Storage\PDOClientStorage;
 use Oauth\Services\Storage\ResourceStorageInterface;
 use Psr\Log\LoggerInterface;
 use RandomLib\Generator;
@@ -24,10 +23,11 @@ use RandomLib\Generator;
 class ClientRegister
 {
     private const COOL_DOWN = 5;
-
-    private const PASSWORD_CHAR_GEN = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+/-_%!?${}[]';
-
+    private const PASSWORD_CHAR_GEN = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
     private const CLIENT_IDENTIFIER_CHAR_GEN = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    private const CLIENT_SECRET_LENGTH = 32;
+    private const CLIENT_ID_LENGTH = 8;
+
 
     /** @var ClientStorageInterface */
     private $clientStorage;
@@ -59,7 +59,7 @@ class ClientRegister
      */
     public function register(ClientInterface $client) : self
     {
-        $client->setClientSecret($this->generator->generateString(16, self::PASSWORD_CHAR_GEN));
+        $client->setClientSecret($this->generator->generateString(self::CLIENT_SECRET_LENGTH, self::PASSWORD_CHAR_GEN));
         $client->setRegistrationDate(new \DateTime());
         // Not sur than this is in right way
         $client->setScope(array_unique($client->getScope()));
@@ -78,7 +78,7 @@ class ClientRegister
         $attemptsNumber = 0;
         $exception = true;
         while ($exception) {
-            $client->setClientIdentification($this->generator->generateString(8, self::CLIENT_IDENTIFIER_CHAR_GEN));
+            $client->setClientIdentification($this->generator->generateString(self::CLIENT_ID_LENGTH, self::CLIENT_IDENTIFIER_CHAR_GEN));
             try {
                 $this->clientStorage->create($client);
                 $exception = false;
@@ -122,7 +122,7 @@ class ClientRegister
         $attemptsNumber = 0;
         $client = null;
         while (true) {
-            $newClientId = $this->generator->generateString(8, self::CLIENT_IDENTIFIER_CHAR_GEN);
+            $newClientId = $this->generator->generateString(self::CLIENT_ID_LENGTH, self::CLIENT_IDENTIFIER_CHAR_GEN);
             try {
                $client = $this->clientStorage->updateIdentification($clientId, $newClientId);
                $client->setClientIdentification($newClientId);
@@ -153,7 +153,7 @@ class ClientRegister
         $attemptsNumber = 0;
         $client = null;
         while (true) {
-            $newClientSecret = $this->generator->generateString(16, self::PASSWORD_CHAR_GEN);
+            $newClientSecret = $this->generator->generateString(self::CLIENT_SECRET_LENGTH, self::PASSWORD_CHAR_GEN);
             try {
                 $client = $this->clientStorage->updateSecret($clientId, $newClientSecret);
                 $client->setClientSecret($newClientSecret);
@@ -181,6 +181,15 @@ class ClientRegister
      */
     public function update(ClientInterface $client) : self
     {
+        // check validity of scope
+        try {
+            foreach ($client->getScope() as $service) {
+                $this->resourceStorage->fetchScopeByService($service);
+            }
+        } catch (NoEntityException $e) {
+            throw new ValidatorException('One or more scope element are unknown form this server');
+        }
+
         try {
             $this->clientStorage->update($client);
         } catch (UniqueException $e) {

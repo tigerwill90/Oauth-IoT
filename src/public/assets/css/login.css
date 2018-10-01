@@ -24,7 +24,14 @@
 
 .resource {
     text-align: center;
-    margin: 10px 0 10px 0;
+    padding: 10px 0 10px 0;
+}
+
+.error {
+    text-align: center;
+    vertical-align: center;
+    padding: 20px 0 20px 0;
+    background-color: #e57373;
 }
 
 .grant-right {

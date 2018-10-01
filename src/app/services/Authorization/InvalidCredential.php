@@ -6,7 +6,7 @@
  * Time: 21:27
  */
 
-namespace Oauth\Services\Authentication;
+namespace Oauth\Services\Authorization;
 
 class InvalidCredential extends NoRedirectErrorException
 {

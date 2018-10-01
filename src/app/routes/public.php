@@ -13,10 +13,10 @@
     });
 
     $app->map(['GET','POST'],'/introspect', Oauth\Controllers\IntrospectionEndpoint::class);
-    $app->get('/authorize', Oauth\Controllers\TokenEndpoint::class);
+    $app->map(['GET', 'POST'],'/token', Oauth\Controllers\TokenEndpoint::class);
     $app->group('/auth', function () {
-        $this->get('', \Oauth\Controllers\AuthenticationEndpoint::class . ':sign');
-        $this->post('', \Oauth\Controllers\AuthenticationEndpoint::class . ':login')->setName('auth');
+        $this->get('', \Oauth\Controllers\AuthorizationEndpoint::class . ':sign');
+        $this->post('', \Oauth\Controllers\AuthorizationEndpoint::class . ':login')->setName('auth');
     });
     $app->group('/clients', function() {
         $this->post('', \Oauth\Controllers\CreateClientController::class);

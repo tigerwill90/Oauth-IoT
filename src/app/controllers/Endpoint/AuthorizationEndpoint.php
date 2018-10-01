@@ -8,21 +8,21 @@
 
 namespace Oauth\Controllers;
 
-use Oauth\Services\Authentication\AuthenticationTimeoutException;
-use Oauth\Services\Authentication\AuthorizationManager;
-use Oauth\Services\Authentication\InvalidCredential;
-use Oauth\Services\Authentication\NoRedirectErrorException;
-use Oauth\Services\Authentication\SecurityException;
+use Oauth\Services\Authorization\AuthenticationTimeoutException;
+use Oauth\Services\Authorization\AuthorizationManager;
+use Oauth\Services\Authorization\InvalidCredential;
+use Oauth\Services\Authorization\NoRedirectErrorException;
+use Oauth\Services\Authorization\SecurityException;
 use Oauth\Services\Validators\ValidatorManagerInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
 use Slim\Views\Twig;
 
-class AuthenticationEndpoint
+class AuthorizationEndpoint
 {
     /** @var AuthorizationManager  */
-    private $authenticationManager;
+    private $authorizationManager;
 
     /** @var Twig  */
     private $view;
@@ -33,9 +33,9 @@ class AuthenticationEndpoint
     /** @var LoggerInterface  */
     private $logger;
 
-    public function __construct(AuthorizationManager $authenticationManager, Twig $view, ValidatorManagerInterface $validatorManager, LoggerInterface $logger = null)
+    public function __construct(AuthorizationManager $authorizationManager, Twig $view, ValidatorManagerInterface $validatorManager, LoggerInterface $logger = null)
     {
-        $this->authenticationManager = $authenticationManager;
+        $this->authorizationManager = $authorizationManager;
         $this->view = $view;
         $this->validatorManager = $validatorManager;
         $this->logger = $logger;
@@ -56,8 +56,8 @@ class AuthenticationEndpoint
         }
 
         try {
-            if (!$this->authenticationManager->authorizationRequest($request)) {
-                $redirectUri = $this->authenticationManager->getRedirectionUri() . '?' . $this->authenticationManager->getQueryErrorResponse();
+            if (!$this->authorizationManager->authorizationRequest($request)) {
+                $redirectUri = $this->authorizationManager->getRedirectionUri() . '?' . $this->authorizationManager->getQueryErrorResponse();
                 return $response->withHeader('location', $redirectUri)->withStatus(302);
             }
         } catch (NoRedirectErrorException $e) {
@@ -69,11 +69,11 @@ class AuthenticationEndpoint
         }
 
         $args = [
-            'title' => 'Oauth2.0',
-            'scopes' => $this->authenticationManager->getResourceScope(),
-            'client_name' => $this->authenticationManager->getClientName(),
-            'unique_identifier' => $this->authenticationManager->getUniqueIdentifier(),
-            'token_authenticity' => $this->authenticationManager->getTokenAuthenticity()
+            'title' => getenv('APP_NAME'),
+            'scopes' => $this->authorizationManager->getResourceScope(),
+            'client_name' => $this->authorizationManager->getClientName(),
+            'unique_identifier' => $this->authorizationManager->getUniqueIdentifier(),
+            'token_authenticity' => $this->authorizationManager->getTokenAuthenticity()
         ];
         return $this->view->render($response, 'login.twig', $args)->withStatus(200)->withHeader('content-type', 'text/html');
     }
@@ -90,27 +90,27 @@ class AuthenticationEndpoint
         $redirectUri = '';
         parse_str($queryUrl, $queryParams);
         try {
-            $this->authenticationManager->authorizationResponse($request);
-            $redirectUri = $this->authenticationManager->getRedirectionUri() . '?' . $this->authenticationManager->getQueryResponse();
+            $this->authorizationManager->authorizationResponse($request);
+            $redirectUri = $this->authorizationManager->getRedirectionUri() . '?' . $this->authorizationManager->getQueryResponse();
         } catch (InvalidCredential $e) {
-            $this->log('credentials exception');
+            $this->log($e->getMessage());
             $args = [
-                'title' => 'Oauth2.0',
-                'scopes' => $this->authenticationManager->getResourceScope(),
-                'client_name' => $this->authenticationManager->getClientName(),
-                'unique_identifier' => $this->authenticationManager->getUniqueIdentifier(),
-                'token_authenticity' => $this->authenticationManager->getTokenAuthenticity(),
-                'error' => $e->getMessage()
+                'title' => getenv('APP_NAME'),
+                'scopes' => $this->authorizationManager->getResourceScope(),
+                'client_name' => $this->authorizationManager->getClientName(),
+                'unique_identifier' => $this->authorizationManager->getUniqueIdentifier(),
+                'token_authenticity' => $this->authorizationManager->getTokenAuthenticity(),
+                'error' => 'Invalid username or password'
             ];
             return $this->view->render($response, 'login.twig', $args)->withStatus(401)->withHeader('content-type', 'text/html');
         } catch (NoRedirectErrorException $e) {
             $this->log($e->getMessage());
             $args = [
-                'title' => 'Oauth2.0',
-                'scopes' => $this->authenticationManager->getResourceScope(),
-                'client_name' => $this->authenticationManager->getClientName(),
-                'unique_identifier' => $this->authenticationManager->getUniqueIdentifier(),
-                'token_authenticity' => $this->authenticationManager->getTokenAuthenticity(),
+                'title' => getenv('APP_NAME'),
+                'scopes' => $this->authorizationManager->getResourceScope(),
+                'client_name' => $this->authorizationManager->getClientName(),
+                'unique_identifier' => $this->authorizationManager->getUniqueIdentifier(),
+                'token_authenticity' => $this->authorizationManager->getTokenAuthenticity(),
                 'error' => $e->getMessage()
             ];
             return $this->view->render($response, 'login.twig', $args)->withStatus(401)->withHeader('content-type', 'text/html');
@@ -127,7 +127,7 @@ class AuthenticationEndpoint
     /**
      * @param string $message
      * @param array $context
-     * @return AuthenticationEndpoint
+     * @return AuthorizationEndpoint
      */
     private function log(string $message, array $context = []) : self
     {

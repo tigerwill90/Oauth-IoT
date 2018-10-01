@@ -8,6 +8,7 @@
 
 namespace Oauth\Services\Storage;
 
+use Oauth\Services\AudienceInterface;
 use Oauth\Services\Clients\Client;
 use Oauth\Services\Clients\ClientInterface;
 use Oauth\Services\Exceptions\Storage\ClientIdException;
@@ -35,9 +36,9 @@ class PDOClientStorage implements ClientStorageInterface
 
     /**
      * @param string $clientId
-     * @return ClientInterface
+     * @return ClientInterface|AudienceInterface
      */
-    public function fetch(string $clientId) : ClientInterface
+    public function fetch(string $clientId)
     {
         $sql =
             '
@@ -328,6 +329,16 @@ class PDOClientStorage implements ClientStorageInterface
         } catch (\PDOException $e) {
             throw $e;
         }
+    }
+
+    private function arrayEquals($a, $b) : bool
+    {
+        return (
+            \is_array($a)
+            && \is_array($b)
+            && count($a) === count($b)
+            && array_diff($a, $b) === array_diff($b, $a)
+        );
     }
 
     /**

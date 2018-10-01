@@ -8,9 +8,7 @@
 
 namespace Oauth\Controllers;
 
-use Jose\Component\Core\JWKSet;
 use Oauth\Services\Exceptions\Storage\NoEntityException;
-use Memcached;
 use Oauth\Services\IntrospectionInterface;
 use Oauth\Services\Storage\ResourceStorageInterface;
 use \Psr\Http\Message\ServerRequestInterface;
@@ -22,20 +20,16 @@ final class IntrospectionEndpoint
     /** @var IntrospectionInterface  */
     private $introspection;
 
-    /** @var Memcached  */
-    private $mc;
-
     /** @var LoggerInterface  */
     private $logger;
 
     /** @var ResourceStorageInterface */
     private $resourceStorage;
 
-    public function __construct(IntrospectionInterface $introspection, Memcached $mc, ResourceStorageInterface $resourceStorage, LoggerInterface $logger = null)
+    public function __construct(IntrospectionInterface $introspection, ResourceStorageInterface $resourceStorage, LoggerInterface $logger = null)
     {
         $this->introspection = $introspection;
         $this->logger = $logger;
-        $this->mc = $mc;
         $this->resourceStorage = $resourceStorage;
     }
 
@@ -62,8 +56,16 @@ final class IntrospectionEndpoint
         }
 
         try {
-            $resource = $this->resourceStorage->fetchByResourceIdentification(base64_decode($identification));
-            // TODO check password is TLS on
+            $credentials = explode(':', base64_decode($identification), 2);
+            $resource = $this->resourceStorage->fetchByResourceIdentification($credentials[0]);
+            if ($resource->isTls() && $resource->getResourceSecret() !== $credentials[1]) {
+                $body = $response->getBody();
+                $body->write(json_encode(['error' => 'invalid resource']));
+                return $response
+                    ->withBody($body)
+                    ->withHeader('content-type', 'application/json')
+                    ->withStatus(401);
+            }
         } catch (NoEntityException $e) {
             $body = $response->getBody();
             $body->write(json_encode(['error' => 'invalid resource']));
@@ -73,25 +75,17 @@ final class IntrospectionEndpoint
                 ->withStatus(401);
         }
 
-        $jwkSet = $this->mc->get($resource->getAudience());
-
-        if (empty($jwkSet)) {
-            $jwkSet = JWKSet::createFromKeys([]);
-        }
-
-        $this->log(print_r($jwkSet, true));
-
         $this->introspection
             ->withChecker('standard')
-            ->setResource($resource)
+            ->setAudience($resource)
             ->setRequestParameterToVerify('token')
-            ->setMandatoryClaims([IntrospectionInterface::CLAIM_EXP, IntrospectionInterface::CLAIM_AUD]);
+            ->setMandatoryClaims([IntrospectionInterface::CLAIM_EXP, IntrospectionInterface::CLAIM_AUD, IntrospectionInterface::CLAIM_JTI]);
 
         if ($resource->getPopMethod() === 'introspection') {
             $this->introspection->setPopKey($resource->isTls(), $resource->getResourceSecret());
         }
 
-        $isValidToken = $this->introspection->introspectToken($request, $jwkSet, true);
+        $isValidToken = $this->introspection->introspectToken($request);
 
         $body = $response->getBody();
         $body->write(json_encode($this->introspection, JSON_UNESCAPED_SLASHES));

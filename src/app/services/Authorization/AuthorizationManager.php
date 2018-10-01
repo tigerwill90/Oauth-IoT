@@ -6,7 +6,7 @@
  * Time: 21:49
  */
 
-namespace Oauth\Services\Authentication;
+namespace Oauth\Services\Authorization;
 
 use Oauth\Services\Resources\ScopeInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -140,6 +140,7 @@ class AuthorizationManager
 
         $this->grantMethod = $cache['grant_method'];
 
+        // Get resource data from cache
         $this->grantType[$this->grantMethod]->populateFromCache($params['unique_identifier'], $cache);
 
         // anti CSRF (maybe not relevant)

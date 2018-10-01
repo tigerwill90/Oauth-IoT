@@ -9,7 +9,9 @@
 namespace Oauth\Services\Resources;
 
 
-class Resource implements ResourceInterface
+use Oauth\Services\AudienceInterface;
+
+class Resource implements ResourceInterface, AudienceInterface
 {
     /** @var int */
     private $id;
@@ -30,7 +32,7 @@ class Resource implements ResourceInterface
     private $popMethod;
 
     /** @var ScopeInterface[] */
-    private $scope;
+    private $scopes;
 
     /** @var int */
     private $keySize;
@@ -173,16 +175,16 @@ class Resource implements ResourceInterface
      */
     public function getScope(): array
     {
-        return $this->scope;
+        return $this->scopes;
     }
 
     /**
-     * @param ScopeInterface[] $scope
+     * @param ScopeInterface[] $scopes
      * @return Resource
      */
-    public function setScope(array $scope): ResourceInterface
+    public function setScope(array $scopes): ResourceInterface
     {
-        $this->scope = $scope;
+        $this->scopes = $scopes;
         return $this;
     }
 
@@ -269,6 +271,28 @@ class Resource implements ResourceInterface
      */
     public function jsonSerialize()
     {
-        // TODO: Implement jsonSerialize() method.
+        return [
+            'resource_identification' => $this->resourceIdentification,
+            'resource_secret' => $this->resourceSecret,
+            'resource_audience' => $this->audience,
+            'resource_registration_date' => $this->registrationDate,
+            'resource_pop_method' => $this->popMethod,
+            'key_size' => $this->keySize,
+            'tls' => $this->tls,
+            'shared_key_algorithm' => $this->sharedKeyAlgorithm,
+            'transmission_algorithm' => $this->transmissionAlgorithm
+        ];
+    }
+
+    /**
+     * @return array
+     */
+    public function getScopeArray(): array
+    {
+        $scopes = [];
+        foreach ($this->scopes as $scope) {
+            $scopes[] = $scope->getService();
+        }
+        return $scopes;
     }
 }

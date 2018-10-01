@@ -8,6 +8,7 @@
 
 namespace Oauth\Services\Storage;
 
+use Oauth\Services\AudienceInterface;
 use Oauth\Services\Clients\ClientInterface;
 
 interface ClientStorageInterface
@@ -16,9 +17,9 @@ interface ClientStorageInterface
     /**
      * Fetch a full representation of a client
      * @param string $clientId
-     * @return ClientInterface
+     * @return ClientInterface|AudienceInterface
      */
-    public function fetch(string $clientId) : ClientInterface;
+    public function fetch(string $clientId);
 
     /**
      * @param $client

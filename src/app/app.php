@@ -17,6 +17,9 @@
     $dotenv->required('TIMEZONE')->notEmpty();
     $dotenv->required('TEMPLATE_DIR')->notEmpty();
     $dotenv->required('CACHE_DIR')->notEmpty();
+    $dotenv->required('APP_NAME')->notEmpty();
+    $dotenv->required('REFRESH_TOKEN_KEY')->notEmpty();
+    $dotenv->required('REFRESH_TOKEN_ID')->notEmpty();
 
     date_default_timezone_set(getenv('TIMEZONE'));
 

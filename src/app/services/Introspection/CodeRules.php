@@ -1,61 +1,62 @@
 <?php
 /**
  * Created by PhpStorm.
- * User: thor
- * Date: 8/11/18
- * Time: 5:27 PM
+ * User: Sylvain
+ * Date: 29.09.2018
+ * Time: 17:52
  */
 
 namespace Oauth\Services;
 
 use Memcached;
-use Oauth\Services\Resources\ResourceInterface;
 
-class ClaimsCheckerRules implements ClaimsCheckerInterface
+class CodeRules implements ClaimsCheckerInterface
 {
     /** @var Memcached  */
     private $mc;
 
-    // Necessary stuff to perform claims verification
     public function __construct(Memcached $mc)
     {
         $this->mc = $mc;
     }
 
     /**
+     * Return false is sub don't match
      * @param array $claims
      * @return bool
      */
-    public function verifySub(array $claims) : bool
+    public function verifySub(array $claims): bool
     {
-        return false;
+        return $claims['sub'] === 'authorization_code';
     }
 
     /**
-     * Verify than aud match with the RS (use resource identification to perform the check)
+     * Return false if aud don't match
      * @param array $claims
-     * @param ResourceInterface $resource
+     * @param AudienceInterface $audience
      * @return bool
      */
-    public function verifyAud(array $claims, ResourceInterface $resource) : bool
+    public function verifyAud(array $claims, AudienceInterface $audience): bool
     {
-        return $claims['aud'] === $resource->getAudience();
+        return $claims['aud'] === $audience->getAudience();
     }
 
     /**
+     * Return false if iss don't match
      * @param array $claims
      * @return bool
      */
-    public function verifyIss(array $claims) : bool
+    public function verifyIss(array $claims): bool
     {
-        return $claims['iss'] === 'My service';
+        return $claims['iss'] === getenv('APP_NAME');
     }
 
     /**
+     * Return false if jti operation check is invalid
      * @param array $claims
      * @return bool
      */
-    public function verifyJti(array $claims) : bool
+    public function verifyJti(array $claims): bool
     {
         // jti already used ?
         if (!empty($this->mc->get($claims['jti']))) {
@@ -71,12 +72,13 @@ class ClaimsCheckerRules implements ClaimsCheckerInterface
     }
 
     /**
+     * Return false if permission don't match
      * @param array $claims
-     * @param ResourceInterface $resource
+     * @param AudienceInterface $audience
      * @return bool
      */
-    public function verifyScope(array $claims, ResourceInterface $resource) : bool
+    public function verifyScope(array $claims, AudienceInterface $audience): bool
     {
-        return false;
+        return true;
     }
 }

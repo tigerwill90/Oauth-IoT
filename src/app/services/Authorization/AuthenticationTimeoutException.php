@@ -6,7 +6,7 @@
  * Time: 14:52
  */
 
-namespace Oauth\Services\Authentication;
+namespace Oauth\Services\Authorization;
 
 class AuthenticationTimeoutException extends \Exception
 {

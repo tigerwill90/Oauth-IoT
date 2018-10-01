@@ -6,7 +6,7 @@
  * Time: 19:00
  */
 
-namespace Oauth\Services\Authentication;
+namespace Oauth\Services\Authorization;
 
 class SecurityException extends \Exception
 {

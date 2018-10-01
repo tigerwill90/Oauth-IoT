@@ -34,7 +34,7 @@ class Scope implements ScopeInterface
         if (!empty($scope['id'])) {
             $this->id = $scope['id'];
         }
-        $this->service = $scope['scope_service'];
+        $this->service = $scope['scope_service'] ?? ''; //TODO dangerous, only for demos, adapt code for no scope
         $this->name = $scope['scope_name'];
         $this->description = $scope['scope_description'];
         $this->uri = $scope['scope_uri'];
@@ -159,6 +159,12 @@ class Scope implements ScopeInterface
      */
     public function jsonSerialize()
     {
-        // TODO: Implement jsonSerialize() method.
+        return [
+            'scope_service' => $this->service,
+            'scope_name' => $this->name,
+            'scope_description' => $this->description,
+            'scope_uri' => $this->uri,
+            'scope_method' => $this->method
+        ];
     }
 }

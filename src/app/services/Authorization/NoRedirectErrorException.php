@@ -6,7 +6,7 @@
  * Time: 18:19
  */
 
-namespace Oauth\Services\Authentication;
+namespace Oauth\Services\Authorization;
 
 class NoRedirectErrorException extends \Exception
 {

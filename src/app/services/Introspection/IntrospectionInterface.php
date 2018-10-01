@@ -9,7 +9,6 @@
 namespace Oauth\Services;
 
 use Jose\Component\Core\JWKSet;
-use Oauth\Services\Resources\ResourceInterface;
 
 /**
  * OAuth 2.0 Token Introspection RFC 7662
@@ -57,6 +56,8 @@ interface IntrospectionInterface extends \JsonSerializable
 
     /**
      * Set pop introspection method, with an optional no-tls support
+     * TLS support :
+     * - encrypt the shared key with the client secret (only support AES in ECB mode for now)
      * @param bool $tls
      * @param string|null $secret
      * @return IntrospectionInterface
@@ -65,10 +66,10 @@ interface IntrospectionInterface extends \JsonSerializable
 
     /**
      * Set a instance of resource interface, will be useful for claims checker
-     * @param ResourceInterface $resource
+     * @param AudienceInterface $audience
      * @return IntrospectionInterface
      */
-    public function setResource(ResourceInterface $resource) : IntrospectionInterface;
+    public function setAudience(AudienceInterface $audience) : IntrospectionInterface;
 
     /**
      * Set claim who MUST be in the token and who need to be verified
@@ -121,7 +122,7 @@ interface IntrospectionInterface extends \JsonSerializable
      * @param bool $onlyMandatoryClaims
      * @return bool => the result of introspection process
      */
-    public function introspectToken(\Psr\Http\Message\ServerRequestInterface $request, JWKSet $jwkSet, bool $onlyMandatoryClaims = false) : bool;
+    public function introspectToken(\Psr\Http\Message\ServerRequestInterface $request, JWKSet $jwkSet = null, bool $onlyMandatoryClaims = false) : bool;
 
     /**
      * Return an appropriate response array
@@ -136,4 +137,10 @@ interface IntrospectionInterface extends \JsonSerializable
      * @return array[string]string|int
      */
     public function getInvalidClaims() : array;
+
+    /**
+     * Return an array with all jwt claims
+     * @return array[string]string|int
+     */
+    public function getClaims() : array;
 }

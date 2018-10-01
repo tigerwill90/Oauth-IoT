@@ -6,7 +6,7 @@
  * Time: 22:01
  */
 
-namespace Oauth\Services\Authentication;
+namespace Oauth\Services\Authorization;
 
 use Oauth\Services\Clients\ClientInterface;
 use Oauth\Services\Exceptions\Storage\NoEntityException;
@@ -25,6 +25,7 @@ abstract class AuthorizationGrantType
 
     protected const COOL_DOWN = 5;
 
+    // Alphanumeric characters
     protected const TOKEN_CHAR_GEN = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
     /** @var ClientStorageInterface  */
@@ -131,7 +132,67 @@ abstract class AuthorizationGrantType
      * @return bool
      * @throws NoRedirectErrorException
      */
-    abstract public function validateRequest(array $queryParameters) : bool;
+    /**
+     * @param array $queryParameters
+     * @return bool
+     * @throws NoRedirectErrorException
+     */
+    public function validateRequest(array $queryParameters): bool
+    {
+        $this->grantMethod = $queryParameters['response_type'];
+
+        if (null === $queryParameters['state']) {
+            $this->errorsMessages['error'] = 'invalid_request';
+            $this->errorsMessages['error_description'] = 'State parameter is missing';
+            return false;
+        }
+
+        if (!ctype_alnum($queryParameters['state'])) {
+            $this->errorsMessages['error'] = 'invalid_request';
+            $this->errorsMessages['error_description'] = 'State parameter must be an alphanumeric string';
+            return false;
+        }
+
+        $this->state = $queryParameters['state'];
+
+        $queryScope = explode(' ', $queryParameters['scope']);
+        // Array with invalid scope request
+        $scopeOut = array_filter(array_diff($queryScope,$this->client->getScope()), '\strlen');
+        // Array with correct scope request (maybe unnecessary)
+        $correctedScope = array_filter(array_diff($queryScope, $scopeOut), '\strlen');
+        if (!empty($scopeOut)) {
+            $this->errorsMessages['error'] = 'invalid_scope';
+            $this->errorsMessages['error_description'] = 'This client have no access for this scope element ' . implode('&', $scopeOut);
+            $this->errorsMessages['state'] = $this->state;
+            return false;
+        }
+
+        if ($this->client->getGrantType() !== $queryParameters['response_type']) {
+            $this->errorsMessages['error'] = 'unauthorized_client';
+            $this->errorsMessages['error_description'] = 'This client is not authorized to request an access token using ' . $queryParameters['response_type'] . 'method';
+            $this->errorsMessages['state'] = $this->state;
+            return false;
+        }
+
+        try {
+            // allow maybe more than one audience
+            $this->resource = $this->resourceStorage->fetchByAudience($queryParameters['audience']);
+            $scopes = $this->resource->getScope();
+            // delete not needed scope
+            foreach ($scopes as $i =>  $scope) {
+                if (!\in_array($scope->getService(), $correctedScope, true)) {
+                    unset($scopes[$i]);
+                }
+            }
+
+            $this->resource->setScope($scopes);
+
+        } catch (NoEntityException $e) {
+            throw new NoRedirectErrorException('This resource does not exist');
+        }
+
+        return true;
+    }
 
     /**
      * Authenticate a user
@@ -196,7 +257,7 @@ abstract class AuthorizationGrantType
                 break;
             }
             if ($break >= self::COOL_DOWN) {
-                throw new \ErrorException('Impossible to create a unique identifier');
+                throw new \ErrorException('Impossible to create an unique identifier');
             }
             $break++;
         }

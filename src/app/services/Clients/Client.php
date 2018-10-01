@@ -9,8 +9,9 @@
 namespace Oauth\Services\Clients;
 
 use DateTime;
+use Oauth\Services\AudienceInterface;
 
-class Client implements ClientInterface
+class Client implements ClientInterface, AudienceInterface
 {
     /** @var int */
     private $id;
@@ -265,5 +266,21 @@ class Client implements ClientInterface
             'grant_type' => $this->grantType,
             'registration_date' => $this->getRegistrationDate()
         ];
+    }
+
+    /**
+     * @return string
+     */
+    public function getAudience() : string
+    {
+        return $this->clientName;
+    }
+
+    /**
+     * @return array
+     */
+    public function getScopeArray() : array
+    {
+        return $this->scopes;
     }
 }

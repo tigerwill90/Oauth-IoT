@@ -37,11 +37,11 @@ virtual :
 	vhost/./virtualhost.sh
 
 update :
-	docker-compose exec httpd composer update --prefer-dist
+	docker-compose exec -u oauth httpd composer update --prefer-dist
 	make autoload
 
 autoload :
-	docker-compose exec httpd composer dump-autoload -o
+	docker-compose exec -u oauth httpd composer dump-autoload -o
 
 bash :
 	docker-compose exec httpd bash

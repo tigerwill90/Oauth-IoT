@@ -8,103 +8,123 @@
 
 namespace Oauth\Services\Token;
 
-use Jose\Component\Core\JWK;
-use Jose\Component\Core\JWKSet;
-use Memcached;
-use Oauth\Services\Helpers\JoseHelperInterface;
-use Oauth\Services\Resources\ResourceInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
-use RandomLib\Generator;
 
 class TokenManager
 {
-    private const TOKEN_CHAR_GEN = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-
-    /** @var Memcached  */
-    private $mc;
-
     /** @var LoggerInterface  */
     private $logger;
 
-    /** @var Generator  */
-    private $generator;
-
-    /** @var JoseHelperInterface  */
-    private $joseHelper;
-
-    /** @var JWKSet */
-    private $jwkSet;
-
-    /** @var JWK */
-    private $sharedJwk;
-
-    /** @var JWK */
-    private $accessTokenJwk;
+    /** @var array */
+    private $errors;
 
     /** @var string */
-    private $accessToken;
+    private $grantMethod;
 
-    public function __construct(Memcached $mc, Generator $generator, JoseHelperInterface $joseHelper, LoggerInterface $logger = null)
+    /**
+     * <code>
+     * $grantType = [
+     *      'token' => new ImplicitGrant(),
+     *      'response_type' => new AuthorizationGrantType()
+     * ]
+     * @var TokenGrantType[]
+     */
+    private $grantType;
+
+    public function __construct(LoggerInterface $logger = null)
     {
-        $this->mc = $mc;
-        $this->generator = $generator;
-        $this->joseHelper = $joseHelper;
         $this->logger = $logger;
     }
 
     /**
-     * @param ResourceInterface $resource
+     * @param string $grantType
+     * @param TokenGrantType $tokenGrantType
      * @return TokenManager
-     * @throws \Exception
      */
-    public function createKeySet(ResourceInterface $resource) : self
+    public function add(string $grantType, TokenGrantType $tokenGrantType) : self
     {
-        //$popMethod = $resource->getPopMethod();
-
-        // temporary process for light_introspection method
-
-        $kid = $this->generator->generateString(4, self::TOKEN_CHAR_GEN);
-
-        // create KEYSet
-        $this->sharedJwk = JWK::create([
-            'alg' => 'AES128-ECB',
-            'kty' => 'oct',
-            'kid' => $kid . '-s',
-            'k' => $this->generator->generateString(16, self::TOKEN_CHAR_GEN),
-            'key_ops' => ['encrypt', 'decrypt']
-        ]);
-
-        $this->accessTokenJwk = JWK::create([
-            'alg' => 'HS256',
-            'kty' => 'oct',
-            'use' => 'sig',
-            'k' => $this->generator->generateString(32, self::TOKEN_CHAR_GEN),
-            'kid' => $kid,
-        ]);
-
-        $this->jwkSet = JWKSet::createFromKeys([$this->sharedJwk, $this->accessTokenJwk]);
-
-        $this->mc->set($resource->getAudience(), $this->jwkSet, 1000);
-
-        $this->accessToken = $this->joseHelper
-                ->setJwk($this->accessTokenJwk)
-                ->createToken([
-                    'jti' => $this->generator->generateString(8, self::TOKEN_CHAR_GEN),
-                    'aud' => $resource->getAudience(),
-                    'exp' => time() + 1000
-                ]);
-
+        $this->grantType[$grantType] = $tokenGrantType;
         return $this;
     }
 
-    public function getSharedKey() : string
+    /**
+     * Determine if access can be grant
+     * @param ServerRequestInterface $request
+     * @return bool
+     */
+    public function grantAccess(ServerRequestInterface $request) : bool
     {
-        return $this->sharedJwk->get('k');
+        // Instance have at least one AuthorizationGrantType added
+        if (null === $this->grantType) {
+            throw new \RuntimeException('Instance should have at least one grant type added');
+        }
+
+        $queryParameter = $request->getQueryParams();
+        $this->grantMethod = $queryParameter['grant_type'];
+
+        if (null === $this->grantMethod) {
+            $this->errors['error'] = 'unsupported_grant_type';
+            $this->errors['description'] = 'The request must include a grant type';
+            return false;
+        }
+
+        if (!array_key_exists($this->grantMethod, $this->grantType)) {
+            $this->errors['error'] = 'unsupported_grant_type';
+            $this->errors['error_description'] = 'The ' . $this->grantMethod . ' grant type method is not supported by this server';
+            return false;
+        }
+
+        $authorizations = $request->getHeader('HTTP_AUTHORIZATION');
+        $authorization = null;
+
+        if (isset($authorizations[0]) && preg_match('/Basic\s+(.*)$/i', $authorizations[0],$matches)) {
+            $authorization =  $matches[1];
+        } else {
+            $this->errors['error'] = 'invalid_request';
+            $this->errors['description'] = 'Client must authenticate with Basic authentication flow';
+            return false;
+        }
+
+        try {
+            $this->grantType[$this->grantMethod]->authenticateClient($authorization);
+        } catch (InvalidClientCredential $e) {
+            $this->errors['error'] = 'invalid_client';
+            $this->errors['description'] = 'Invalid client identification or secret';
+            return false;
+        }
+
+        if (!$this->grantType[$this->grantMethod]->validateRequest($queryParameter)) {
+            $this->errors = $this->grantType[$this->grantMethod]->getErrors();
+            return false;
+        }
+
+        if (!$this->grantType[$this->grantMethod]->introspectToken($request)) {
+            $this->errors = $this->grantType[$this->grantMethod]->getErrors();
+            return false;
+        }
+
+        return true;
     }
 
-    public function getAccessToken() : string
+    /**
+     * Return a standardized access granted/error response
+     * @return array
+     */
+    public function getArrayResponse() : array
     {
-        return $this->accessToken;
+        return $this->grantType[$this->grantMethod]->getResponseArray();
+    }
+
+    /**
+     * @return array
+     */
+    public function getArrayErrors() : array
+    {
+        if ($this->errors === null) {
+            return $this->grantType[$this->grantMethod]->getErrors();
+        }
+        return $this->errors;
     }
 
     /**
@@ -119,5 +139,4 @@ class TokenManager
         }
         return $this;
     }
-
 }
