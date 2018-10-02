@@ -4,7 +4,7 @@
     use \Psr\Http\Message\ResponseInterface;
     use phpseclib\Crypt\AES;
 
-    const SHAREDKEY = 'f06Us9ADOF5QJJgL';
+    const SHAREDKEY = 'XOhk2bpZ2C9Vycof';
 
     $app->get('/', function (ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface {
         $body = $response->getBody();
@@ -73,10 +73,10 @@
       return $response->withStatus(401);
     });
 
-    $app->get('/weather', function(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface {
+    $app->get('/wind', function(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface {
 
-        $curl = curl_init('http://192.168.192.80/protected');
-        $authorization = 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjR6eUwifQ.eyJleHAiOjE1Mzc5MDQ4OTcsImF1ZCI6ImlvdF8xIn0.8M5CXlwRDXSoKeMuwJAKuHCxf3Xn1vET9AUzKUfTRt0';
+        $curl = curl_init('http://192.168.192.51/wind/direction');
+        $authorization = 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjhaMkgifQ.eyJleHAiOjE1Mzg0ODE3OTQsImF1ZCI6ImlvdF8yIiwianRpIjoiYTJYdEdoZ202cSIsInNjb3BlIjoiUmd5cm8gUmFuZW5vIn0.hSFMM_viRHKtSrlYep381E1ijqsltMC6MJbaZbKDkj4';
         curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json' , $authorization));
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_HEADERFUNCTION, 'HandleHeaderLine');
@@ -84,23 +84,63 @@
         $payload = curl_exec($curl);
 
         // encoded message
-        $encoded = json_decode($payload, true)['encoded'];
+        $data = json_decode($payload, true);
+        $encoded = $data['encoded'];
+        $length = $data['length'];
+
         // decode message
         $encrypted = base64_decode($encoded);
 
         // AES set up
-        $cipher = new AES(AES::MODE_ECB);
-        $cipher->setKey(SHAREDKEY);
+        $cipher = new AES(AES::MODE_CBC);
+        $cipher->setKeyLength(256);
+        $cipher->setKey('dYi04WLPKv1kFcSbmz8TJ74OMt95pKMX');
         $cipher->disablePadding();
 
         // Decrypt
         $message = $cipher->decrypt($encrypted);
+
+        $message = substr($message, 0, $length);
+        $message = substr($message, 16);
 
         curl_close($curl);
         $body = $response->getBody();
         $body->write(json_encode(['message' => $message], JSON_UNESCAPED_SLASHES));
         return $response->withBody($body);
     });
+
+$app->get('/move', function(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface {
+
+    $curl = curl_init('http://192.168.192.80/move');
+    $authorization = 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjZOUmcifQ.eyJleHAiOjE1Mzg0Njg1OTcsImF1ZCI6ImlvdF8yIiwianRpIjoibnRPM2RSTThQaCIsInNjb3BlIjoiUmd5cm8gUmFuZW5vIn0.rdKp6XtUCrUZI2W_ms9da25I3W6q80gzoha6HjCJLs0';
+    curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json' , $authorization));
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($curl, CURLOPT_HEADERFUNCTION, 'HandleHeaderLine');
+    curl_setopt($curl, CURLOPT_TIMEOUT,10);
+    $payload = curl_exec($curl);
+
+    // encoded message
+    $data = json_decode($payload, true);
+    $encoded = $data['encoded'];
+    $length = $data['length'];
+
+    // decode message
+    $encrypted = base64_decode($encoded);
+
+    // AES set up
+    $cipher = new AES(AES::MODE_ECB);
+    $cipher->setKeyLength(128);
+    $cipher->setKey('JVa3yxZUMvj3VaNIq0UGkpKb2jzWw3jk');
+    $cipher->disablePadding();
+
+    // Decrypt
+    $message = $cipher->decrypt($encrypted);
+
+    curl_close($curl);
+    $body = $response->getBody();
+    $body->write(json_encode(['message' => $message], JSON_UNESCAPED_SLASHES));
+    return $response->withBody($body);
+});
 
     function HandleHeaderLine($curl, $header_line) : int {
         //echo "<br>YEAH: ".$header_line; // or do whatever

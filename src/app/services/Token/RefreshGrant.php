@@ -12,11 +12,12 @@ namespace Oauth\Services\Token;
 use Jose\Component\Core\JWK;
 use Jose\Component\Core\JWKSet;
 use Oauth\Services\Exceptions\Storage\NoEntityException;
+use Oauth\Services\IntrospectionInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 class RefreshGrant extends TokenGrantType
 {
-    private const JWT_EXPIRATION = 60;
+    private const JWT_EXPIRATION = 3600;
     private const JWK_EXPIRATION = self::JWT_EXPIRATION + 60;
     private const MAX_KID_ATTEMPTS = 5;
     private const KID_LENGTH = 4;
@@ -64,7 +65,13 @@ class RefreshGrant extends TokenGrantType
             ->withChecker('refresh')
             ->setAudience($this->client)
             ->setRequestParameterToVerify('refresh_token')
-            ->setMandatoryClaims(['iss','aud','sub','iat', 'exp'])
+            ->setMandatoryClaims([
+                IntrospectionInterface::CLAIM_ISS,
+                IntrospectionInterface::CLAIM_AUD,
+                IntrospectionInterface::CLAIM_SUB,
+                IntrospectionInterface::CLAIM_IAT,
+                IntrospectionInterface::CLAIM_EXP
+            ])
             ->introspectToken($request, $jwkSet, true);
 
         if (!$isValid) {

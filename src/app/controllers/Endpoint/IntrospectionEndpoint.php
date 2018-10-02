@@ -79,13 +79,13 @@ final class IntrospectionEndpoint
             ->withChecker('standard')
             ->setAudience($resource)
             ->setRequestParameterToVerify('token')
-            ->setMandatoryClaims([IntrospectionInterface::CLAIM_EXP, IntrospectionInterface::CLAIM_AUD, IntrospectionInterface::CLAIM_JTI]);
+            ->setMandatoryClaims([IntrospectionInterface::CLAIM_EXP, IntrospectionInterface::CLAIM_AUD]);
 
         if ($resource->getPopMethod() === 'introspection') {
             $this->introspection->setPopKey($resource->isTls(), $resource->getResourceSecret());
         }
 
-        $isValidToken = $this->introspection->introspectToken($request);
+        $isValidToken = $this->introspection->introspectToken($request, null, true);
 
         $body = $response->getBody();
         $body->write(json_encode($this->introspection, JSON_UNESCAPED_SLASHES));

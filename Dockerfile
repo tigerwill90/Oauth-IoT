@@ -36,7 +36,10 @@ RUN set -x \
         && apt-get install --no-install-recommends --no-install-suggests -y \
                 git \
                 make \
-                wget
+                wget \
+                zip \
+                unzip
+
 
 ###
 ### Install php extension
@@ -61,6 +64,9 @@ RUN set -x \
         && git clone --branch php7 https://github.com/php-memcached-dev/php-memcached /usr/src/php/ext/memcached/ \
         && docker-php-ext-install memcached \
         && docker-php-ext-enable memcached \
+        \
+        && docker-php-ext-install zip \
+        && docker-php-ext-enable zip \
         \
         && ln /usr/include/x86_64-linux-gnu/gmp.h /usr/include/ \
         && docker-php-ext-install gmp \

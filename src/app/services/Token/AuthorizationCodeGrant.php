@@ -10,6 +10,7 @@ namespace Oauth\Services\Token;
 
 use Jose\Component\Core\JWK;
 use Oauth\Services\Exceptions\Storage\NoEntityException;
+use Oauth\Services\IntrospectionInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 class AuthorizationCodeGrant extends TokenGrantType
@@ -70,7 +71,14 @@ class AuthorizationCodeGrant extends TokenGrantType
             ->withChecker('code')
             ->setAudience($this->client)
             ->setRequestParameterToVerify('code')
-            ->setMandatoryClaims(['iss','aud','sub','exp','iat','jti'])
+            ->setMandatoryClaims([
+                IntrospectionInterface::CLAIM_ISS,
+                IntrospectionInterface::CLAIM_AUD,
+                IntrospectionInterface::CLAIM_SUB,
+                IntrospectionInterface::CLAIM_EXP,
+                IntrospectionInterface::CLAIM_IAT,
+                IntrospectionInterface::CLAIM_JTI
+            ])
             ->introspectToken($request, null, true);
 
         if (!$isValid) {
