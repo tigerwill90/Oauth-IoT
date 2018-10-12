@@ -52,7 +52,8 @@ class AuthorizationEndpoint
     public function sign(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface
     {
         if (!$this->validatorManager->validate(['sign'], $request)) {
-            return $this->view->render($response, 'badRequest.twig')->withStatus(400)->withHeader('content-type', 'text/html');
+            $args = ['error', 'Validation error'];
+            return $this->view->render($response, 'badRequest.twig', $args)->withStatus(400)->withHeader('content-type', 'text/html');
         }
 
         try {

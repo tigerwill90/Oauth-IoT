@@ -17,7 +17,7 @@ use Psr\Http\Message\ServerRequestInterface;
 
 class RefreshGrant extends TokenGrantType
 {
-    private const JWT_EXPIRATION = 3600;
+    private const JWT_EXPIRATION = 60;
     private const JWK_EXPIRATION = self::JWT_EXPIRATION + 60;
     private const MAX_KID_ATTEMPTS = 5;
     private const KID_LENGTH = 4;

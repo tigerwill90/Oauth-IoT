@@ -8,7 +8,7 @@
 
     $app->get('/', function (ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface {
         $body = $response->getBody();
-        $body->write(json_encode(['status' => 'work in progress']));
+        $body->write(json_encode(['status' => 'Oauth2.0 server']));
         return $response->withBody($body);
     });
 
@@ -75,8 +75,8 @@
 
     $app->get('/wind', function(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface {
 
-        $curl = curl_init('http://192.168.192.51/wind/direction');
-        $authorization = 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjhaMkgifQ.eyJleHAiOjE1Mzg0ODE3OTQsImF1ZCI6ImlvdF8yIiwianRpIjoiYTJYdEdoZ202cSIsInNjb3BlIjoiUmd5cm8gUmFuZW5vIn0.hSFMM_viRHKtSrlYep381E1ijqsltMC6MJbaZbKDkj4';
+        $curl = curl_init('http://10.136.1.132/wind/direction');
+        $authorization = 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImZUdTcifQ.eyJleHAiOjE1Mzg1ODA3ODIsImF1ZCI6ImlvdF8yIiwianRpIjoiMlpNd0UyaktXVCJ9.mC6m1iyYEr1q6a1VWDZ3MC4EmJkRVL9ZKC2yjVQmbo4';
         curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json' , $authorization));
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl, CURLOPT_HEADERFUNCTION, 'HandleHeaderLine');
@@ -94,14 +94,18 @@
         // AES set up
         $cipher = new AES(AES::MODE_CBC);
         $cipher->setKeyLength(256);
-        $cipher->setKey('dYi04WLPKv1kFcSbmz8TJ74OMt95pKMX');
+        $cipher->setKey('h9ky6263rbRAGnWD9zP7YAOfgeTN9i3f');
         $cipher->disablePadding();
 
         // Decrypt
         $message = $cipher->decrypt($encrypted);
 
+        error_log($message);
+
         $message = substr($message, 0, $length);
         $message = substr($message, 16);
+
+        error_log($message);
 
         curl_close($curl);
         $body = $response->getBody();
@@ -112,7 +116,7 @@
 $app->get('/move', function(ServerRequestInterface $request, ResponseInterface $response) : ResponseInterface {
 
     $curl = curl_init('http://192.168.192.80/move');
-    $authorization = 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjZOUmcifQ.eyJleHAiOjE1Mzg0Njg1OTcsImF1ZCI6ImlvdF8yIiwianRpIjoibnRPM2RSTThQaCIsInNjb3BlIjoiUmd5cm8gUmFuZW5vIn0.rdKp6XtUCrUZI2W_ms9da25I3W6q80gzoha6HjCJLs0';
+    $authorization = 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImRLclkifQ.eyJleHAiOjE1Mzg1MTAxMTIsImF1ZCI6ImlvdF8yIiwianRpIjoidUxXVTNQT21UcSJ9.nh0RwEhih64btlhXva4Q80TxU3iyxjRlcd9KCEmc7nA';
     curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type: application/json' , $authorization));
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($curl, CURLOPT_HEADERFUNCTION, 'HandleHeaderLine');
@@ -130,7 +134,7 @@ $app->get('/move', function(ServerRequestInterface $request, ResponseInterface $
     // AES set up
     $cipher = new AES(AES::MODE_ECB);
     $cipher->setKeyLength(128);
-    $cipher->setKey('JVa3yxZUMvj3VaNIq0UGkpKb2jzWw3jk');
+    $cipher->setKey('mjY8x0r6Gd5rnOoJMSpD4Rx0wvLs2Mjr');
     $cipher->disablePadding();
 
     // Decrypt
